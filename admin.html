@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Jettism — Applications (Admin)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+html{height:100%;
+  background:radial-gradient(ellipse at 50% 0%,#1700FF 10%,#0800C0 100%);
+  background-color:#0800C0;overscroll-behavior:none}
+body{width:100%;min-height:100%;
+  background:radial-gradient(ellipse at 50% 0%,#1700FF 10%,#0800C0 100%);
+  background-color:#0800C0;overscroll-behavior:none;
+  font-family:'Montserrat',sans-serif;color:#fff;
+  display:flex;flex-direction:column;align-items:center;padding:40px 20px 80px}
+
+h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
+
+@keyframes fadeDown{0%{opacity:0;transform:translateY(-18px)}100%{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;animation:fadeDown .6s cubic-bezier(.22,.9,.35,1) forwards}
+
+/* ── Lock screen ── */
+#lock{display:flex;flex-direction:column;align-items:center;gap:16px;
+  margin-top:15vh;width:100%;max-width:320px}
+#lock h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:20px}
+#lock input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(0,0,0,.4);color:#fff;font-size:14px;outline:none;text-align:center;
+  font-family:'Montserrat',sans-serif}
+#lock input:focus{border-color:#FFE800}
+#lock button{width:100%;padding:12px;background:#000;color:#fff;border:none;border-radius:999px;
+  font-family:'Montserrat',sans-serif;font-weight:700;font-size:14px;cursor:pointer}
+#lock button:disabled{opacity:.5;cursor:not-allowed}
+#lock .err{color:#ff6b6b;font-size:13px;min-height:16px}
+
+/* ── Dashboard ── */
+#dash{display:none;width:100%;max-width:1100px;flex-direction:column;gap:20px}
+#dash h1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:26px}
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.toolbar select{padding:9px 30px 9px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(0,0,0,.4);color:#fff;font-size:13px;outline:none;font-family:'Montserrat',sans-serif;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' stroke='white' stroke-width='2' fill='none'/></svg>");
+  background-repeat:no-repeat;background-position:right 10px center;cursor:pointer}
+.toolbar select option{background:#0800C0}
+.toolbar button{padding:9px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(0,0,0,.3);color:#fff;font-size:13px;cursor:pointer;font-family:'Montserrat',sans-serif}
+.toolbar .count{margin-left:auto;font-size:13px;color:rgba(255,255,255,.65)}
+.toolbar button:hover, .toolbar select:hover{border-color:#FFE800}
+
+.card-list{display:flex;flex-direction:column;gap:14px}
+.card{background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.16);
+  border-radius:14px;padding:18px 20px;cursor:pointer;transition:border-color .15s ease}
+.card:hover{border-color:rgba(255,232,0,.5)}
+.card-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:6px}
+.tag{font-family:'Montserrat',sans-serif;font-weight:700;font-size:11px;letter-spacing:.3px;
+  padding:4px 10px;border-radius:999px;background:#FFE800;color:#000;text-shadow:none}
+.tag.mc-yes{background:#7CFFB2}
+.tag.mc-no{background:rgba(255,255,255,.25);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.card-top .discord{font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px}
+.card-top .time{margin-left:auto;font-size:11.5px;color:rgba(255,255,255,.5)}
+.card-meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:rgba(255,255,255,.7)}
+
+.detail{display:none;margin-top:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);
+  font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.92)}
+.detail.open{display:block}
+.detail dt{font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;color:#FFE800;
+  margin-top:12px;margin-bottom:3px}
+.detail dt:first-child{margin-top:0}
+.detail a{color:#7CFFB2}
+#empty{text-align:center;color:rgba(255,255,255,.55);padding:40px 0;font-size:14px}
+</style>
+</head>
+<body>
+
+  <div id="lock" class="reveal">
+    <h2>Staff access only</h2>
+    <input type="password" id="pw" placeholder="Password"/>
+    <button id="pw-btn">Enter</button>
+    <div class="err" id="pw-err"></div>
+  </div>
+
+  <div id="dash">
+    <h1>Applications</h1>
+    <div class="toolbar">
+      <select id="filter-position">
+        <option value="">Sort by: Position (all)</option>
+        <option>Longform Editor</option>
+        <option>Shortform Editor</option>
+        <option>Clipper</option>
+        <option>Clip Editor</option>
+        <option>Thumbnail Designer</option>
+      </select>
+      <select id="filter-mc">
+        <option value="">Minecraft exp: (all)</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+      <select id="sort-order">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+      </select>
+      <button id="refresh-btn">Refresh</button>
+      <div class="count" id="count"></div>
+    </div>
+    <div class="card-list" id="card-list"></div>
+    <div id="empty" style="display:none">No applications match these filters.</div>
+  </div>
+
+<script>
+  // Same Apps Script Web App URL used in apply.html
+  const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzsQADEUD9yV2B9Z-f-W0VIOMJDJWJcOeKhpmMAoKSk7PEeR-vpRpueieDb2jahm9XgOA/exec";
+
+  // The password itself is NOT stored here — it's checked by your Apps
+  // Script backend (private, server-side), so it never appears in this
+  // file or in "view source" on the live site.
+  let currentPassword = null;
+  let allRows = [];
+
+  const lock = document.getElementById('lock');
+  const dash = document.getElementById('dash');
+  const pwInput = document.getElementById('pw');
+  const pwBtn = document.getElementById('pw-btn');
+  const pwErr = document.getElementById('pw-err');
+
+  async function attemptUnlock(){
+    const pw = pwInput.value;
+    if(!pw) return;
+    pwBtn.disabled = true;
+    pwBtn.textContent = 'Checking...';
+    pwErr.textContent = '';
+
+    try {
+      const res = await fetch(ENDPOINT_URL + '?action=list&password=' + encodeURIComponent(pw));
+      const json = await res.json();
+
+      if(json && json.error){
+        pwErr.textContent = 'Incorrect password.';
+        pwBtn.disabled = false;
+        pwBtn.textContent = 'Enter';
+        return;
+      }
+
+      currentPassword = pw;
+      allRows = json;
+      lock.style.display = 'none';
+      dash.style.display = 'flex';
+      dash.querySelectorAll('*').forEach(function(el,i){
+        el.classList.add('reveal');
+        el.style.animationDelay = (i * 0.02) + 's';
+      });
+      render();
+    } catch(err){
+      pwErr.textContent = 'Could not reach the server. Try again.';
+      pwBtn.disabled = false;
+      pwBtn.textContent = 'Enter';
+    }
+  }
+
+  pwBtn.addEventListener('click', attemptUnlock);
+  pwInput.addEventListener('keydown', e => { if(e.key==='Enter') attemptUnlock(); });
+
+  async function refreshData(){
+    if(!currentPassword) return;
+    try{
+      const res = await fetch(ENDPOINT_URL + '?action=list&password=' + encodeURIComponent(currentPassword));
+      const json = await res.json();
+      if(json && json.error){ return; }
+      allRows = json;
+      render();
+    }catch(err){}
+  }
+
+  document.getElementById('refresh-btn').addEventListener('click', refreshData);
+  document.getElementById('filter-position').addEventListener('change', render);
+  document.getElementById('filter-mc').addEventListener('change', render);
+  document.getElementById('sort-order').addEventListener('change', render);
+
+  function render(){
+    const posFilter = document.getElementById('filter-position').value;
+    const mcFilter = document.getElementById('filter-mc').value;
+    const order = document.getElementById('sort-order').value;
+
+    let rows = allRows.filter(r =>
+      (!posFilter || r.position === posFilter) &&
+      (!mcFilter || r.minecraft_experience === mcFilter)
+    );
+
+    rows.sort((a,b) => {
+      const ta = new Date(a.submitted_at).getTime();
+      const tb = new Date(b.submitted_at).getTime();
+      return order === 'new' ? tb - ta : ta - tb;
+    });
+
+    const list = document.getElementById('card-list');
+    const empty = document.getElementById('empty');
+    document.getElementById('count').textContent = rows.length + ' application' + (rows.length===1?'':'s');
+
+    if(rows.length === 0){
+      list.innerHTML = '';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+
+    list.innerHTML = rows.map((r) => {
+      const when = r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '';
+      const mcClass = r.minecraft_experience === 'Yes' ? 'mc-yes' : 'mc-no';
+      return `
+        <div class="card">
+          <div class="card-top">
+            <span class="tag">${escapeHtml(r.position||'')}</span>
+            <span class="tag ${mcClass}">MC: ${escapeHtml(r.minecraft_experience||'')}</span>
+            <span class="discord">${escapeHtml(r.discord||'')}</span>
+            <span class="time">${when}</span>
+          </div>
+          <div class="card-meta">
+            <span>TZ: ${escapeHtml(r.timezone||'')}</span>
+            <span>Age: ${escapeHtml(r.age||'')}</span>
+            <span>Hours/day: ${escapeHtml(r.hours||'')}</span>
+            <span>Payout: ${escapeHtml(r.payout||'')}</span>
+          </div>
+          <dl class="detail">
+            <dt>Portfolio</dt><dd><a href="${escapeAttr(r.portfolio||'#')}" target="_blank" rel="noopener">${escapeHtml(r.portfolio||'')}</a></dd>
+            <dt>Experience</dt><dd>${escapeHtml(r.experience||'')}</dd>
+            <dt>What they bring</dt><dd>${escapeHtml(r.bring||'')}</dd>
+            <dt>What makes them stand out</dt><dd>${escapeHtml(r.standout||'')}</dd>
+          </dl>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        card.querySelector('.detail').classList.toggle('open');
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function escapeAttr(str){ return escapeHtml(str); }
+</script>
+</body>
+</html>
