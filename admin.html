@@ -114,12 +114,27 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 <script>
   // Same Apps Script Web App URL used in apply.html
   const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzsQADEUD9yV2B9Z-f-W0VIOMJDJWJcOeKhpmMAoKSk7PEeR-vpRpueieDb2jahm9XgOA/exec";
+  const HOME_URL = "https://jettism.com/";
 
   // The password itself is NOT stored here — it's checked by your Apps
   // Script backend (private, server-side), so it never appears in this
   // file or in "view source" on the live site.
   let currentPassword = null;
   let allRows = [];
+
+  // Device ID used only for rate-limiting failed login attempts.
+  // Persisted in localStorage so repeated page loads/macros share the
+  // same counter instead of resetting it.
+  function getDeviceId(){
+    let id = localStorage.getItem('jettism_admin_device');
+    if(!id){
+      id = (crypto.randomUUID ? crypto.randomUUID() :
+        'dev-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+      localStorage.setItem('jettism_admin_device', id);
+    }
+    return id;
+  }
+  const deviceId = getDeviceId();
 
   const lock = document.getElementById('lock');
   const dash = document.getElementById('dash');
@@ -135,11 +150,22 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
     pwErr.textContent = '';
 
     try {
-      const res = await fetch(ENDPOINT_URL + '?action=list&password=' + encodeURIComponent(pw));
+      const url = ENDPOINT_URL + '?action=list'
+        + '&password=' + encodeURIComponent(pw)
+        + '&device=' + encodeURIComponent(deviceId);
+      const res = await fetch(url);
       const json = await res.json();
 
+      if(json && json.error === 'banned'){
+        window.location.href = HOME_URL;
+        return;
+      }
+
       if(json && json.error){
-        pwErr.textContent = 'Incorrect password.';
+        const left = json.attemptsLeft;
+        pwErr.textContent = left != null
+          ? 'Incorrect password. ' + left + ' attempt' + (left===1?'':'s') + ' left.'
+          : 'Incorrect password.';
         pwBtn.disabled = false;
         pwBtn.textContent = 'Enter';
         return;
@@ -167,8 +193,15 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
   async function refreshData(){
     if(!currentPassword) return;
     try{
-      const res = await fetch(ENDPOINT_URL + '?action=list&password=' + encodeURIComponent(currentPassword));
+      const url = ENDPOINT_URL + '?action=list'
+        + '&password=' + encodeURIComponent(currentPassword)
+        + '&device=' + encodeURIComponent(deviceId);
+      const res = await fetch(url);
       const json = await res.json();
+      if(json && json.error === 'banned'){
+        window.location.href = HOME_URL;
+        return;
+      }
       if(json && json.error){ return; }
       allRows = json;
       render();
