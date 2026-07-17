@@ -25,6 +25,7 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 @keyframes fadeDown{0%{opacity:0;transform:translateY(-18px)}100%{opacity:1;transform:translateY(0)}}
 .reveal{opacity:0;animation:fadeDown .6s cubic-bezier(.22,.9,.35,1) forwards}
 
+/* ── Lock screen ── */
 #lock{display:flex;flex-direction:column;align-items:center;gap:16px;
   margin-top:15vh;width:100%;max-width:320px}
 #lock h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:20px}
@@ -37,6 +38,7 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 #lock button:disabled{opacity:.5;cursor:not-allowed}
 #lock .err{color:#ff6b6b;font-size:13px;min-height:16px}
 
+/* ── Dashboard ── */
 #dash{display:none;width:100%;max-width:1100px;flex-direction:column;gap:20px}
 #dash h1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:26px}
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
@@ -291,7 +293,7 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
             <span class="discord">${escapeHtml(r.discord||'')}</span>
             <span class="time">${when}</span>
             <div class="card-actions">
-              <a class="portfolio-link" href="${portfolioHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Portfolio ↗</a>
+              <a class="portfolio-link" href="${portfolioHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(getLinkLabel(r.portfolio))} ↗</a>
               <button class="delete-btn" data-row="${r._row}">Delete</button>
             </div>
           </div>
@@ -322,6 +324,51 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
         deleteApplicant(row, btn);
       });
     });
+  }
+
+  function getLinkLabel(url){
+    if(!url) return 'Link';
+    let hostname;
+    try{
+      hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    }catch(e){
+      return 'Link';
+    }
+
+    const knownSites = [
+      { match: 'drive.google.com', label: 'Drive' },
+      { match: 'docs.google.com', label: 'Google Docs' },
+      { match: 'youtube.com', label: 'YouTube' },
+      { match: 'youtu.be', label: 'YouTube' },
+      { match: 'twitter.com', label: 'Twitter' },
+      { match: 'x.com', label: 'X' },
+      { match: 'instagram.com', label: 'Instagram' },
+      { match: 'tiktok.com', label: 'TikTok' },
+      { match: 'vimeo.com', label: 'Vimeo' },
+      { match: 'dropbox.com', label: 'Dropbox' },
+      { match: 'mega.nz', label: 'Mega' },
+      { match: 'behance.net', label: 'Behance' },
+      { match: 'artstation.com', label: 'ArtStation' },
+      { match: 'discord.com', label: 'Discord' },
+      { match: 'discord.gg', label: 'Discord' },
+      { match: 'github.com', label: 'GitHub' },
+      { match: 'notion.so', label: 'Notion' },
+      { match: 'twitch.tv', label: 'Twitch' },
+      { match: 'onedrive.live.com', label: 'OneDrive' },
+      { match: 'streamable.com', label: 'Streamable' },
+      { match: 'imgur.com', label: 'Imgur' },
+    ];
+
+    for(const site of knownSites){
+      if(hostname === site.match || hostname.endsWith('.' + site.match)){
+        return site.label;
+      }
+    }
+
+    // Fallback: capitalize the main part of the domain, e.g. "example.com" -> "Example"
+    const mainPart = hostname.split('.')[0];
+    if(!mainPart) return 'Link';
+    return mainPart.charAt(0).toUpperCase() + mainPart.slice(1);
   }
 
   function escapeHtml(str){
