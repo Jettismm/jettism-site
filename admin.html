@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Admin</title>
+<title>Jettism Admin</title>
 <link rel="icon" type="image/png" href="/jettismicontransparent.png"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -25,7 +25,6 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 @keyframes fadeDown{0%{opacity:0;transform:translateY(-18px)}100%{opacity:1;transform:translateY(0)}}
 .reveal{opacity:0;animation:fadeDown .6s cubic-bezier(.22,.9,.35,1) forwards}
 
-/* ── Lock screen ── */
 #lock{display:flex;flex-direction:column;align-items:center;gap:16px;
   margin-top:15vh;width:100%;max-width:320px}
 #lock h2{font-family:'Montserrat',sans-serif;font-weight:700;font-size:20px}
@@ -38,7 +37,6 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 #lock button:disabled{opacity:.5;cursor:not-allowed}
 #lock .err{color:#ff6b6b;font-size:13px;min-height:16px}
 
-/* ── Dashboard ── */
 #dash{display:none;width:100%;max-width:1100px;flex-direction:column;gap:20px}
 #dash h1{font-family:'Montserrat',sans-serif;font-weight:800;font-size:26px}
 .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
@@ -64,6 +62,18 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
 .tag.mc-no{background:rgba(255,255,255,.25);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4)}
 .card-top .discord{font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px}
 .card-top .time{margin-left:auto;font-size:11.5px;color:rgba(255,255,255,.5)}
+
+.card-actions{display:flex;align-items:center;gap:8px;margin-left:8px}
+.portfolio-link{font-size:12px;font-weight:600;color:#7CFFB2;text-decoration:none;
+  border:1px solid rgba(124,255,178,.4);padding:5px 10px;border-radius:999px;
+  transition:background .15s ease}
+.portfolio-link:hover{background:rgba(124,255,178,.12)}
+.delete-btn{font-size:12px;font-weight:600;color:#ff8a8a;background:transparent;
+  border:1px solid rgba(255,107,107,.4);padding:5px 10px;border-radius:999px;
+  cursor:pointer;transition:background .15s ease;text-shadow:none;font-family:'Montserrat',sans-serif}
+.delete-btn:hover{background:rgba(255,107,107,.15)}
+.delete-btn:disabled{opacity:.4;cursor:not-allowed}
+
 .card-meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:rgba(255,255,255,.7)}
 
 .detail{display:none;margin-top:8px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);
@@ -113,19 +123,12 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
   </div>
 
 <script>
-  // Same Apps Script Web App URL used in apply.html
   const ENDPOINT_URL = "https://script.google.com/macros/s/AKfycbzsQADEUD9yV2B9Z-f-W0VIOMJDJWJcOeKhpmMAoKSk7PEeR-vpRpueieDb2jahm9XgOA/exec";
   const HOME_URL = "https://jettism.com/";
 
-  // The password itself is NOT stored here — it's checked by your Apps
-  // Script backend (private, server-side), so it never appears in this
-  // file or in "view source" on the live site.
   let currentPassword = null;
   let allRows = [];
 
-  // Device ID used only for rate-limiting failed login attempts.
-  // Persisted in localStorage so repeated page loads/macros share the
-  // same counter instead of resetting it.
   function getDeviceId(){
     let id = localStorage.getItem('jettism_admin_device');
     if(!id){
@@ -161,7 +164,6 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
         window.location.href = HOME_URL;
         return;
       }
-
       if(json && json.error){
         const left = json.attemptsLeft;
         pwErr.textContent = left != null
@@ -209,6 +211,42 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
     }catch(err){}
   }
 
+  async function deleteApplicant(row, btnEl){
+    if(!currentPassword) return;
+    const sure = confirm('Delete this application? This cannot be undone.');
+    if(!sure) return;
+
+    btnEl.disabled = true;
+    btnEl.textContent = 'Deleting...';
+
+    try{
+      const url = ENDPOINT_URL + '?action=delete'
+        + '&password=' + encodeURIComponent(currentPassword)
+        + '&device=' + encodeURIComponent(deviceId)
+        + '&row=' + encodeURIComponent(row);
+      const res = await fetch(url);
+      const json = await res.json();
+
+      if(json && json.error === 'banned'){
+        window.location.href = HOME_URL;
+        return;
+      }
+      if(json && json.error){
+        alert('Could not delete — please refresh and try again.');
+        btnEl.disabled = false;
+        btnEl.textContent = 'Delete';
+        return;
+      }
+
+      allRows = allRows.filter(r => r._row !== row);
+      render();
+    } catch(err){
+      alert('Could not reach the server.');
+      btnEl.disabled = false;
+      btnEl.textContent = 'Delete';
+    }
+  }
+
   document.getElementById('refresh-btn').addEventListener('click', refreshData);
   document.getElementById('filter-position').addEventListener('change', render);
   document.getElementById('filter-mc').addEventListener('change', render);
@@ -244,13 +282,18 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
     list.innerHTML = rows.map((r) => {
       const when = r.submitted_at ? new Date(r.submitted_at).toLocaleString() : '';
       const mcClass = r.minecraft_experience === 'Yes' ? 'mc-yes' : 'mc-no';
+      const portfolioHref = escapeAttr(r.portfolio || '#');
       return `
-        <div class="card">
+        <div class="card" data-row="${r._row}">
           <div class="card-top">
             <span class="tag">${escapeHtml(r.position||'')}</span>
             <span class="tag ${mcClass}">MC: ${escapeHtml(r.minecraft_experience||'')}</span>
             <span class="discord">${escapeHtml(r.discord||'')}</span>
             <span class="time">${when}</span>
+            <div class="card-actions">
+              <a class="portfolio-link" href="${portfolioHref}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Portfolio ↗</a>
+              <button class="delete-btn" data-row="${r._row}">Delete</button>
+            </div>
           </div>
           <div class="card-meta">
             <span>TZ: ${escapeHtml(r.timezone||'')}</span>
@@ -259,7 +302,6 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
             <span>Payout: ${escapeHtml(r.payout||'')}</span>
           </div>
           <dl class="detail">
-            <dt>Portfolio</dt><dd><a href="${escapeAttr(r.portfolio||'#')}" target="_blank" rel="noopener">${escapeHtml(r.portfolio||'')}</a></dd>
             <dt>Experience</dt><dd>${escapeHtml(r.experience||'')}</dd>
             <dt>What they bring</dt><dd>${escapeHtml(r.bring||'')}</dd>
             <dt>What makes them stand out</dt><dd>${escapeHtml(r.standout||'')}</dd>
@@ -270,6 +312,14 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.55)}
     list.querySelectorAll('.card').forEach(card => {
       card.addEventListener('click', () => {
         card.querySelector('.detail').classList.toggle('open');
+      });
+    });
+
+    list.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const row = parseInt(btn.getAttribute('data-row'), 10);
+        deleteApplicant(row, btn);
       });
     });
   }
