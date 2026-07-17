@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stream VOD Library</title>
-<link rel="icon" type="image/png" href="/jettismicontransparent.png"/>
+<title>Jettism — Stream VOD Library</title>
 <style>
   :root{
     --bg-0:#0e01ca;
@@ -221,6 +220,19 @@
 </head>
 <body>
 
+<div id="loginGate" style="position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background: linear-gradient(180deg, #0e01ca 0%, #0a0299 100%);">
+  <div style="background:#0c0a72; border:1px solid rgba(255,255,255,0.16); border-radius:14px; width:100%; max-width:420px; padding:32px; text-align:center;">
+    <p style="margin:0 0 6px; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#b3b6f0;">Jettism · Productions</p>
+    <h1 style="margin:0 0 20px; font-size:22px; color:#f6f7ff;">Enter password to continue</h1>
+    <input id="gatePassword" type="password" placeholder="Password"
+      style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid rgba(255,255,255,0.16); background:rgba(255,255,255,0.03); color:#f6f7ff; font-size:14px; margin-bottom:12px;">
+    <div id="gateError" style="color:#ff8a8a; font-size:12.5px; margin-bottom:14px; display:none;"></div>
+    <div id="gateSubmit" style="cursor:pointer; padding:11px 16px; border-radius:8px; font-size:13px; font-weight:600; background:#5b6bff; border:1px solid rgba(74,143,255,0.4); color:#f6f7ff;">Unlock</div>
+  </div>
+</div>
+
+<div id="siteContent" style="display:none;">
+
 <header>
   <div class="brand-mark">
     <img class="crown-icon" src="data:image/png;base64,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" alt="Jettism crown logo">
@@ -237,10 +249,9 @@
 
 <main>
   <div class="note">
-    Hey production team! We will now be using this site for all stream
-    vods / timestamps. Now, this site is new so there WILL be bugs.
-    Please contact Jettism or Cobha if you encounter any.
-    Thanks everyone!   - Jettism
+    Download buttons link to the relevant monthly Drive folder (May / June) rather than individual files —
+    connect Drive so each VOD can point straight to its own file. Duration on streams is estimated from the
+    last logged timestamp. The 6/1 stream has no timestamps logged yet.
   </div>
 
   <div class="toolbar">
@@ -297,6 +308,7 @@
     Try a different title or clear the filter.
   </div>
 </main>
+</div>
 
 <script>
 // ---- Shared storage config (Google Apps Script + Sheet) ----
@@ -305,54 +317,7 @@
 // password check happens inside the Apps Script, not here.
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwy9HC1kHpiSyF8MjGcgJd1jeb6kCxY7bFVv-RE0JnhG5Uq1izRQ4VIg8HHW5n5ofti/exec";
 
-let VODS = [
-  { title:"Stream 5-9", date:"2026-05-09", duration:"2:58:25",
-    download:"https://drive.google.com/uc?export=download&id=1TmKgE7LC_ld5tcPSnw1JlvvY89YHnNQ0", timestamps:[["08:35", "aftermath of the biggest donut smp build"], ["15:40", "he found water on the donut smp"], ["18:52", "jettism escapes op trap"], ["23:05", "jettism complates bingo"], ["27:05", "players warn jettism about a trap"], ["29:44", "jettism plays golf on the donut smp"], ["34:00", "jettisms pearl gets stolen by player"], ["35:10", "jettism crashes out"], ["40:30", "jettism gets trapped"], ["51:20", "jettism does air drop??"], ["55:32", "jettism finds a base"], ["56:25", "jettism does tpauto in poor players base"], ["1:02:40", "jettism surives trap"], ["1:12:56", "jettism finds new op fight method"], ["1:21:10", "jettism wins a landmines game"], ["1:25:15", "jettism has the worst pearl puller ever"], ["1:29:10", "jettism gets trapped in his own base"], ["1:35:05", "jettism barley escapes trap"], ["1:39:44", "jettism griefs players base"], ["1:39:58", "jettism visits an prison"], ["2:00:05", "jettism finds the longest path on donut smp"], ["2:08:40", "jettism traps the whole server"], ["2:23:40", "traping the server gone wrong"], ["2:31:00", "bros pearl puller sucks"], ["2:48:25", "bros elytra broke mid flight"]] },
-  { title:"Stream 5-25", date:"2026-05-25", duration:"2:20:38",
-    download:"https://drive.google.com/uc?export=download&id=12px6L-FPATivkGlJG-R55Ou-YJzCBjeE", timestamps:[["30:25", "jettism gets free loot"], ["34:42", "jettism leggins acctuion"], ["40:05", "im not like most players"], ["47:54", "insta regear"], ["50:12", "jettism guesses songs"], ["59:38", "jettism does fastes loot drop"], ["1:22:55", "boat mini game"], ["1:25:52", "trash ahh trap"], ["1:28:22", "bro is NOT invicible"], ["1:33:53", "jettism rates every music disc"], ["1:54:12", "jettism does op loot drop"], ["1:58:47", "farex trolls jettism"], ["2:10:38", "jettism predcits viewer"]] },
-  { title:"Stream 5-28", date:"2026-05-28", duration:"3:00:27",
-    download:"https://drive.google.com/uc?export=download&id=1g83eOknxqKddwa2xqndMGkEqooUQxjWQ", timestamps:[["1:01:27", "jettism loses his elytra"], ["1:09:34", "pk"], ["1:33:55", "idk what to call ts"], ["1:54:12", "loot protect"], ["2:05:38", "the start"], ["2:22:46", "loot drop"], ["2:25:22", "truezay skin"], ["2:46:38", "jettism gives everyone an tnt"], ["2:50:27", "the progress"]] },
-  { title:"Stream 5-29", date:"2026-05-29", duration:"1:34:53",
-    download:"https://drive.google.com/uc?export=download&id=1YCmYU_Lb_AL2dBh6CpYRL8DGGic5uFWY", timestamps:[["03:25", "jettism tricks iditity"], ["09:43", "trash ahh trappers"], ["12:36", "jettism escapes trap"], ["18:17", "water chicken"], ["19:00", "insane trap"], ["22:30", "new trap meta"], ["24:36", "jettism traps the trapper"], ["31:17", "jettism plays mini game"], ["33:25", "the 1t loot drop"], ["37:42", "the guessing game"], ["40:10", "jettism goes to school"], ["51:00", "wemmbu"], ["52:04", "richest stash"], ["57:27", "fake elytras"], ["1:05:37", "jettism is cheating"], ["1:08:09", "what is bros mic"], ["1:09:34", "railgun"], ["1:24:53", "jettism gets insane loot"]] },
-  { title:"Stream 5-30", date:"2026-05-30", duration:"2:01:20",
-    download:"https://drive.google.com/uc?export=download&id=1tLjVicOnnuLs90m4T5PBfgJfpPyDk__j", timestamps:[["28:25", "Jettism blows up players base"], ["30:17", "crazy build"], ["32:31", "big fan"], ["36:14", "making base gone wrong"], ["41:08", "jettism gets insane gift"], ["49:40", "funny joke"], ["50:52", "world record trap"], ["1:00:49", "jettism traps whole server gone wrong"], ["1:17:04", "jettism traps whole server"], ["1:23:09", "jettism gets whole server too look for bases"], ["1:29:50", "jettism finds base with the whole server"], ["1:39:53", "bros pc"], ["1:41:58", "Jettism gets insane mystery box"], ["1:48:39", "jettism trolls player and gets karma"], ["1:51:20", "jettism trolls player"]] },
-  { title:"Stream 5-31", date:"2026-05-31", duration:"1:43:51",
-    download:"https://drive.google.com/uc?export=download&id=1aCqJD_75hfOrSxz1MH7oK5oxjxGSycl5", timestamps:[["15:28", "jettism does tpauto in poor players base"], ["17:30", "insane build"], ["19:04", "jettism finds insane base"], ["26:33", "jettism dies to the worst trappers"], ["28:35", "jettism gets tricked"], ["43:27", "the rarest team name"], ["44:14", "jettism robs a 5 year old"], ["47:40", "jettism trades up to an elytra"], ["48:38", "viewer rescues jettism"], ["59:06", "jettism sucks"], ["1:03:45", "hes never tping to bro agian"], ["1:07:33", "jettism coaches player on how to kill him"], ["1:09:35", "bros banned"], ["1:24:30", "jettism goes to a villiger school"], ["1:30:55", "jettism plays mini game"], ["1:33:51", "new nether pearl stasis meta"]] },
-  { title:"Stream 6-1", date:"2026-06-01", duration:"TBD",
-    download:"https://drive.google.com/uc?export=download&id=1LAG8GPeI1fVwg431QkNC-w9xuQ3BPXug", timestamps:[] },
-  { title:"Stream 6-4", date:"2026-06-04", duration:"2:26:14",
-    download:"https://drive.google.com/uc?export=download&id=1e2AMTpJLqf3AMRLacIaN8cZ04E2wEhO0", timestamps:[["19:50", "jettism talks about the new update"], ["22:04", "new settings gui"], ["24:20", "random update yap"], ["35:35", "jettism argues with himself"], ["57:47", "bros strider went to the backrooms"], ["1:10:11", "jettism kills furex"], ["1:29:33", "jettism loots for treasure"], ["1:34:25", "jettism gets every armor trim"], ["1:38:57", "jettism finds new bug"], ["1:46:39", "jettism finds vanilla base"], ["1:51:50", "jettism 1 shot maces the dragon"], ["1:55:33", "jettism loses his elytra"], ["2:03:11", "jettism gets rail gunned"], ["2:04:45", "jettism kills tung tung"], ["2:10:10", "most expensive loot drop after the update"], ["2:16:14", "making enderman farm gone wrong"]] },
-  { title:"Stream 6-5", date:"2026-06-05", duration:"1:16:24",
-    download:"https://drive.google.com/uc?export=download&id=1WdHaFnR3TqihBLqKBmR6FJtaleJNai1B", timestamps:[["26:01", "worst trappes oat"], ["30:12", "they tried to trap him while he was afk"], ["41:04", "jettism wins mini game"], ["47:10", "guess the block trap"], ["50:59", "guess the player"], ["1:06:24", "jettism surivies insane trap"]] },
-  { title:"Stream 6-7", date:"2026-06-07", duration:"2:51:06",
-    download:"https://drive.google.com/uc?export=download&id=1hMCd1apJdAAdS7eZajeHiLflFABI4da8", timestamps:[["43:09", "so many cheaters"], ["1:09:18", "jettism abuses in crystal bedwars"], ["1:18:04", "insane build"], ["1:27:56", "idk what to name ts"], ["1:33:44", "jettism trolls wizox"], ["1:38:10", "bros blufing"], ["1:39:18", "bros got 4 bodyguards"], ["1:43:23", "idk"], ["1:44:23", "trapped in pokemon base"], ["1:51:36", "jetitsm gets stuck in the end"], ["1:55:09", "jettism raids viewers base"], ["2:41:06", "jettism loses 350m bounty"]] },
-  { title:"Stream 6-8", date:"2026-06-08", duration:"2:46:19",
-    download:"https://drive.google.com/uc?export=download&id=1g-6_YY2jOZfqpqbRS_Uy6hp_bRWJ7BQE", timestamps:[["18:26", "idk what to call ts"], ["34:22", "Jettism crashes out"], ["36:41", "beating game on half a heart"], ["39:31", "ice boast trap"], ["48:09", "Jettism steals elytra"], ["55:08", "fire regear"], ["56:09", "bro got railed mid convo"], ["1:53:36", "so many pandas"], ["2:00:35", "missed oprotunity"], ["2:01:07", "jettism crew"], ["2:20:04", "jettism trolls player"], ["2:36:19", "the winner of rasing lava"]] },
-  { title:"Stream 6-10", date:"2026-06-10", duration:"3:16:00",
-    download:"https://drive.google.com/uc?export=download&id=1rsiVxeECti6FIYwFe3U6NMCFpv7OQ3xh", timestamps:[["26:16", "what is bros mic"], ["39:00", "wrong pick"], ["39:40", "what is bro chosing"], ["47:00", "bro got forced to chose"], ["1:12:56", "jettism trolls farex"], ["1:22:30", "farex farm"], ["1:25:30", "farex v2"], ["1:37:39", "jettism cheats in challange"], ["2:05:15", "Jettism trolls farex"], ["2:11:27", "jettism beats the game"], ["2:17:20", "jettism finds cheating player"], ["2:19:22", "mini games"], ["2:30:20", "jettism plays bedwars"], ["2:38:52", "bros viwers suck"], ["2:42:22", "hidding player"], ["2:57:44", "triple neo"], ["3:06:00", "player wins 2v1"]] },
-  { title:"Stream 6-13", date:"2026-06-13", duration:"2:13:11",
-    download:"https://drive.google.com/uc?export=download&id=11r8weKCNu-3BwYet8jAjYg9DWtYysqYt", timestamps:[["32:23", "jettism trys to trap player"], ["41:30", "jettism kills stacked player"], ["49:51", "rarest name ever"], ["58:58", "jettism shits on farex"], ["1:01:20", "jettism finds insane build"], ["1:09:22", "jettism gets trapped while watching a video"], ["1:16:03", "jettism bullys viewer"], ["1:17:59", "jettism finds insane build"], ["1:20:26", "jettism randomly tps farex first try"], ["1:26:51", "jettism and farex write books for each other"], ["1:36:25", "jettism predicts trap"], ["1:54:21", "jettism is 400 iq"], ["1:55:20", "Jettism gets an insane kill"], ["1:57:31", "jettism gets a block mid air"], ["2:03:11", "jettism screams on poor grandpa"]] },
-  { title:"Stream 6-15", date:"2026-06-15", duration:"2:24:19",
-    download:"https://drive.google.com/uc?export=download&id=1bmaGlOZenxh7QuzWh6Emd90Q1D4NwWJo", timestamps:[["27:56", "wizoxhouse"], ["30:52", "viewer rates jettisms base"], ["35:02", "worst trap ever"], ["36:18", "jettism finds base"], ["37:56", "worst talent show ever"], ["42:00", "fake jettism"], ["43:34", "jettism leaks insane base"], ["49:51", "jettism meows for money"], ["53:40", "truezay in jettisms base"], ["56:33", "jettism escapes warden trap"], ["1:00:06", "jettism kills bomboclat"], ["1:02:21", "triple T"], ["1:06:00", "escape room"], ["1:11:54", "worst trapper ever"], ["1:15:24", "op loot"], ["1:19:42", "Jettism burns down players base"], ["1:24:26", "auto fishing farm"], ["1:25:02", "jettism burns down his own base"], ["1:29:10", "1k dogs"], ["1:35:35", "orbital strike cannon"], ["1:45:22", "son"], ["2:14:19", "Jettism gets a free elytra"]] },
-  { title:"Stream 6-17", date:"2026-06-17", duration:"2:20:50",
-    download:"https://drive.google.com/uc?export=download&id=1woqqAyy6WozGWDWymdbk9mjsd2rxcZPl", timestamps:[["8:45", "jettism stash gets raided"], ["11:54", "jettism finds best farm ever"], ["16:00", "jettism makes his own stash"], ["26:22", "what does bro have in his base"], ["32:19", "jettism does elytra auction"], ["37:10", "jettism talks about his old streams on stream"], ["42:59", "jettism is an idiot"], ["47:00", "jettism vistis nether corner border"], ["49:31", "1 tap mace glitch"], ["52:29", "jettism escapes trap"], ["59:53", "jettism trys to trap farex"], ["1:04:28", "jettism sucks"], ["1:05:41", "farex trolls jettism"], ["1:11:11", "farex sucks"], ["1:21:45", "farex and jettism trap jestic"], ["1:27:33", "jettism kills jestic with no helmet"], ["1:42:16", "farex and jettism troll farex"], ["1:44:45", "donut smp sucks"], ["1:47:27", "Jettism goes to the nether mid wager"], ["1:51:46", "jettism wins a 1 billion dollar wager"], ["1:58:07", "jettism gets karma"], ["2:08:08", "jettism knew it was a trap"], ["2:10:50", "jettism blows up players base"]] },
-  { title:"Stream 6-19", date:"2026-06-19", duration:"2:36:35",
-    download:"https://drive.google.com/uc?export=download&id=1FS_g41Bcqu2Q4k3yqmNtzqfGpNWW1vwb", timestamps:[["15:29", "magic trick"], ["17:37", "magic trick"], ["18:40", "magic trick"], ["21:02", "jettism is an idiot"], ["23:26", "magic trick"], ["25:29", "magic promote"], ["28:42", "magic trick"], ["45:46", "spanwed in items"], ["46:47", "pedro map art"], ["53:33", "jettism gets players elytra"], ["58:29", "unstable smp vault"], ["1:00:39", "grown man btw"], ["1:04:28", "bro got scammed"], ["1:07:52", "jettism knew there was a trap"], ["1:17:15", "redstone genius"], ["1:23:29", "refrence"], ["1:26:25", "jettism does to a baby"], ["1:30:40", "idk what to call ts"], ["1:31:50", "richest player on donut smp"], ["1:38:11", "speedrun trap"], ["1:44:58", "railgun trap"], ["1:45:40", "Jettism robs viewer"], ["1:50:13", "worst trappers ever"], ["1:55:27", "worst clipfarm ever"], ["1:58:12", "worst trap ever"], ["2:01:07", "idk what to call ts"], ["2:07:59", "jettism loses clutch roulete"], ["2:26:35", "jettism is so bad"]] },
-  { title:"Stream 6-20", date:"2026-06-20", duration:"2:38:39",
-    download:"https://drive.google.com/uc?export=download&id=1WxCfFFjvHNokLIjj1H2qdCIKdQe3VAXi", timestamps:[["31:21", "Jettism got log off trapped"], ["36:42", "mod interview"], ["38:37", "joker face"], ["40:17", "Jettism vistis 00"], ["44:15", "worst pearl puller ever"], ["45:07", "spear mace"], ["50:00", "jettism trys to 1v1 kid in spear mace"], ["56:23", "worst trap ever"], ["57:20", "jettism is so bad"], ["58:05", "richest player ever"], ["58:40", "jettism robs viewer"], ["1:00:30", "jettism demotes his manager"], ["1:05:56", "idk what to call ts"], ["1:15:45", "jettism almost dies"], ["1:17:02", "mimic"], ["1:19:56", "who is that"], ["1:21:43", "bomboclat"], ["1:24:53", "jettism avoids monster"], ["1:25:16", "jettism runs from furry"], ["1:26:06", "jettism gets trolled"], ["1:32:03", "what was that?"], ["1:35:12", "Jettism is so bad"], ["1:37:17", "Jettism goes invis agian"], ["1:40:13", "big ahh monster"], ["1:44:30", "idk what to call ts"], ["1:45:53", "idk what to call ts"], ["1:48:16", "jettism kills monster"], ["1:55:46", "jettism trolls truezay"], ["2:00:34", "what happend to bro"], ["2:01:18", "jettism is so bad"], ["2:02:31", "bro is an idiot"], ["2:05:28", "Jettism trolls truezay"], ["2:07:54", "jettism trolls trueay"], ["2:12:43", "idk what to call ts"], ["2:15:18", "jettism is so bad"], ["2:18:55", "jettism trolls truezay"], ["2:20:30", "jettism runs away from monster"], ["2:27:09", "jettism fights off monster"], ["2:28:39", "truezay trolls jettism"]] },
-  { title:"Stream 6-22", date:"2026-06-22", duration:"4:40:48",
-    download:"https://drive.google.com/uc?export=download&id=1P35h9uqbrnj2cZ-09JIjouzD6vWWEG5T", timestamps:[["1:05:43", "enough potatos"], ["1:08:27", "qndres trys to trap jettism"], ["1:08:59", "aura"], ["1:11:35", "joyboy"], ["1:17:20", "insane rtp find"], ["1:19:35", "jettism gets the whole sever to grow plants"], ["1:26:59", "cool redstone build"], ["1:30:02", "matter daddy"], ["1:34:24", "jettism murders his child"], ["1:37:03", "idk what to call ts"], ["1:44:27", "guess the item"], ["1:49:22", "jettism learnes russian"], ["1:51:20", "penguin base"], ["1:54:48", "worst trial ever"], ["2:15:54", "bro tought he found a base"], ["2:19:39", "jettism finds base"], ["2:21:56", "jettism kills wither"], ["2:55:12", "Jettism finds base"], ["2:58:14", "jettism finds base"], ["3:30:46", "2 bases next to each other"], ["4:04:12", "jettism finds insane base"], ["4:06:16", "jettism looks for bases with chopped txt pack"], ["4:11:11", "jettism finds worse base ever"], ["4:18:10", "what is farex doing"], ["4:30:48", "jettism finds worse base ever"]] },
-  { title:"Stream 6-23", date:"2026-06-23", duration:"3:07:03",
-    download:"https://drive.google.com/uc?export=download&id=1oXzVSOgVdK2JkgOm26AughfKOXmzpwxY", timestamps:[["1:14:47", "what is bro playing"], ["1:18:32", "dumbahh mod"], ["1:21:49", "where did bro go"], ["1:24:03", "what is bro yapping about"], ["1:25:57", "verity trys to kill jettism"], ["1:33:37", "what was that"], ["1:59:53", "what is bro doing"], ["2:02:25", "what is bro yapping about"], ["2:03:52", "Jettism traps truezay"], ["2:09:41", "what was that"], ["2:12:21", "what is THAT"], ["2:17:39", "what just happend"], ["2:19:01", "worst attempts ever"], ["2:25:54", "idk what to call ts"], ["2:29:00", "what is jettism doing"], ["2:32:26", "bro broke everything and left"], ["2:39:47", "bro"], ["2:45:09", "why is bro xraying"], ["2:47:49", "jettism beats verity"], ["2:57:03", "jettism is so bad"]] },
-  { title:"Stream 6-25", date:"2026-06-25", duration:"3:20:47",
-    download:"https://drive.google.com/uc?export=download&id=1GMIy_1d8oyR5S7aU2on4s5_SwQuD3BOV", timestamps:[["32:45", "jettism plays meccha chamelon on donut smp"], ["38:05", "find the lever railgun"], ["40:35", "worst trap ever"], ["41:18", "jettism does asmr"], ["43:15", "trapped the trapper"], ["51:10", "what is going on"], ["52:25", "jettism pulls player"], ["55:28", "poor base"], ["58:42", "guess the mob"], ["1:09:35", "jettism wins ice boat race"], ["2:15:39", "Jettism does INSANE loot drop"], ["2:27:22", "jettism plays all jettism levels"], ["2:29:06", "jettism beats sunshine 1st attempt"], ["2:30:48", "jettism almost beats ispy for try"], ["2:33:20", "jettism gets new best on ispy"], ["2:34:43", "jettism beats ispy"], ["2:42:22", "what is bro playing"], ["2:42:57", "idk what to call ts"], ["2:45:42", "what was bros spot"], ["2:52:47", "bro tought he was slick"], ["3:10:47", "jettism wins 1v50"]] },
-  { title:"Stream 6-26", date:"2026-06-26", duration:"1:55:30",
-    download:"https://drive.google.com/uc?export=download&id=11bQM5TZHIrfFUJ68lKTWqQdkH4ykRj3J", timestamps:[["35:33", "jettism wins 1v50"], ["49:05", "aftermath of lootdrop"], ["53:38", "jettism clone"], ["57:53", "jettism does OP loot drop"], ["1:03:37", "INSANE pearl pull"], ["1:31:23", "jettism finds the stronghold on the donut smp"], ["1:45:30", "jettism gets insane advancment"]] },
-  { title:"Stream 6-28", date:"2026-06-28", duration:"4:14:04",
-    download:"https://drive.google.com/uc?export=download&id=1-KkYXvwSa4w2IQ1hiArzIQ9lgJlpfiKS", timestamps:[["41:27", "bro was so close to escaping"], ["44:55", "richest players on jettism.net"], ["54:14", "jettism 1 shots the ender dragon"], ["57:29", "jettism stashs gets raided"], ["58:28", "what is bro yapping about"], ["58:51", "jettism knew there was a trap"], ["1:02:12", "bro is so bad"], ["1:13:32", "what is bros echo"], ["1:20:23", "jettism makes it to the bottom of the void"], ["1:22:54", "bros base"], ["1:25:07", "worst mini games ever"], ["1:29:06", "all of bros bases are raided"], ["1:33:03", "jettism wins russian roulete"], ["1:38:52", "bro got saved"], ["1:41:36", "jettism beats the backrooms"], ["1:44:39", "worst pearl puller ever"], ["1:47:09", "worst trapper ever"], ["1:48:37", "jettism wins in mini game"], ["1:50:29", "best trap ever"], ["1:56:39", "jettism is a CHEATER"], ["2:01:43", "jettism loses 50m wager"], ["2:05:11", "jettism plays mini game"], ["2:08:16", "what was bro yapping about"], ["2:13:01", "fire mapart"], ["2:44:37", "jettism is so bad"], ["2:53:36", "jettism loses a game of draftout"], ["3:33:50", "Jettism trolls viewer"], ["3:42:06", "Jettism wins a game if draftout"], ["3:48:06", "bros teleporting"], ["3:52:18", "Jettism quit 1v50"], ["4:04:04", "bro is so bad"]] },
-  { title:"Stream 6-29", date:"2026-06-29", duration:"3:49:30",
-    download:"https://drive.google.com/uc?export=download&id=1kRTcj-kW9vbQqJopszhdYHBwjRFhotkh", timestamps:[["47:24", "what is bro doing"], ["48:22", "jettism goes on a date with marlow"], ["50:03", "tf pizza gonna do"], ["51:51", "jettism kills a t2"], ["55:05", "jettism beats wizox in a 1v1"], ["1:02:20", "Jettism escapes donut smp"], ["1:06:05", "what is bro doing"], ["1:08:44", "jettism finds a base"], ["1:09:53", "jettism gets interview"], ["1:16:34", "worst trap ever"], ["1:19:07", "worst trapper ever"], ["1:25:17", "traping streamer goes wrong"], ["1:27:46", "jettism gets 1b bounty"], ["1:32:58", "Jettism traps jestic"], ["1:33:22", "jettism trolls jestic"], ["1:34:40", "jettism trolls jestic"], ["1:36:12", "what is bro doing"], ["1:38:36", "bro escaped the trap"], ["1:41:01", "Insane trap"], ["1:44:39", "INSANE trap"], ["1:46:33", "what is that"], ["1:48:01", "Jettism statue"], ["1:50:32", "INSANE trap"], ["1:57:53", "not like most players"], ["1:59:24", "insane pull"], ["2:01:32", "what is bro doing"], ["2:03:06", "Jettism trys to trap jestic"], ["2:03:44", "jettism traps jestic"], ["2:04:42", "jettism plugs his twitch"], ["2:10:36", "donut smp is getting exploded"], ["2:16:49", "jettism dies to 1 arrow"], ["2:17:29", "what is going on"], ["2:42:34", "what is bro making"], ["2:49:02", "jettism is so fat"], ["2:57:28", "jettism wins a game of draftout"], ["3:05:28", "farex leaks jettism new video"], ["3:12:01", "jettism plays mc triva"], ["3:13:05", "how is that wrong"], ["3:14:01", "what is that reward"], ["3:15:06", "mob duplication"], ["3:16:04", "how is that wrong"], ["3:16:59", "jettism finnaly gets sometihng right"], ["3:18:06", "wtf is that"], ["3:19:03", "how is that wrong"], ["3:21:02", "bro was tryna be smart"], ["3:22:00", "bro got something right finnaly"], ["3:22:58", "Jettism is so dumb"], ["3:24:03", "jettism can fly"], ["3:25:01", "bro cheated and didnt get it right"], ["3:26:02", "jettism so dumb"], ["3:27:01", "bro got the easiest question"], ["3:28:02", "jettism is dumb"], ["3:29:05", "bro got the best reward"], ["3:30:00", "bro definatly cheated"], ["3:32:02", "we can hear bro typing"], ["3:33:02", "what is going on"], ["3:34:35", "jettisms manager shows us his new video"], ["3:35:45", "what is bro doing"], ["3:37:20", "what is bro doing"], ["3:38:51", "jettism is really bad at meccha chameleon"], ["3:39:30", "cobha out"]] },
-];
+let VODS = [];
 
 const grid = document.getElementById('grid');
 const emptyState = document.getElementById('emptyState');
@@ -473,24 +438,29 @@ function storageConfigured(){
   return !APPS_SCRIPT_URL.startsWith('YOUR_');
 }
 
-async function loadFromCloud(){
+async function loadFromCloud(sitePassword){
   const statusEl = document.getElementById('syncStatus');
   if(!storageConfigured()){
     statusEl.textContent = 'Add your Apps Script /exec URL at the top of this file to make this shared.';
-    return;
+    return { success: true };
   }
   try{
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=list`);
+    const url = `${APPS_SCRIPT_URL}?action=list&password=${encodeURIComponent(sitePassword)}&deviceId=${encodeURIComponent(getDeviceId())}`;
+    const res = await fetch(url);
     if(!res.ok) throw new Error('fetch failed ' + res.status);
     const data = await res.json();
-    if(data.success && Array.isArray(data.vods) && data.vods.length){
+    if(data.success && Array.isArray(data.vods)){
       VODS = data.vods;
       render();
     }
-    statusEl.textContent = 'Synced with team library · ' + new Date().toLocaleTimeString();
+    if(data.success){
+      statusEl.textContent = 'Synced with team library · ' + new Date().toLocaleTimeString();
+    }
+    return data;
   } catch(err){
     console.error(err);
-    statusEl.textContent = 'Could not reach shared storage — showing local list.';
+    statusEl.textContent = 'Could not reach shared storage.';
+    return { success: false, error: 'Could not reach the backend.' };
   }
 }
 
@@ -627,8 +597,45 @@ document.getElementById('submitAddVod').addEventListener('click', async ()=>{
   document.getElementById('vodTimestamps').value = '';
 });
 
-loadFromCloud();
-render();
+// ---- Site-wide login gate ----
+const loginGate = document.getElementById('loginGate');
+const siteContent = document.getElementById('siteContent');
+const gateError = document.getElementById('gateError');
+const gatePasswordInput = document.getElementById('gatePassword');
+
+async function unlockSite(password){
+  gateError.style.display = 'none';
+  const data = await loadFromCloud(password);
+  if(data.success){
+    localStorage.setItem('vod_site_pw', password);
+    loginGate.style.display = 'none';
+    siteContent.style.display = '';
+    render();
+    // pre-fill the Add VOD password field with the same site password, so
+    // it doesn't need to be typed twice
+    const addPwField = document.getElementById('vodPassword');
+    if(addPwField) addPwField.value = password;
+  } else {
+    gateError.textContent = data.error || 'Incorrect password.';
+    gateError.style.display = 'block';
+  }
+  return data.success;
+}
+
+document.getElementById('gateSubmit').addEventListener('click', ()=>{
+  unlockSite(gatePasswordInput.value);
+});
+gatePasswordInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') unlockSite(gatePasswordInput.value);
+});
+
+// Try a saved password first so returning visitors skip the gate entirely.
+const savedPassword = localStorage.getItem('vod_site_pw');
+if(savedPassword){
+  unlockSite(savedPassword).then(ok=>{
+    if(!ok) localStorage.removeItem('vod_site_pw'); // password changed since — clear stale save
+  });
+}
 </script>
 
 </body>
