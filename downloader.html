@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Drive Clip Downloader</title>
+  <!-- Google Fonts Outfit and Inter for modern aesthetics -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="page-title">Clip Downloader</h1>
+    <p class="page-subtitle">Paste a Google Drive VOD link, set your timestamps, and download the clip.</p>
+
+    <div class="clipper-card">
+      <form id="clip-form">
+        <!-- URL Input Section -->
+        <div class="input-group">
+          <label for="drive-url" class="input-label">GOOGLE DRIVE URL (video)</label>
+          <input 
+            type="text" 
+            id="drive-url" 
+            placeholder="https://drive.google.com/file/d/1A2B3C4D5E6F.../view" 
+            required
+            autocomplete="off"
+            spellcheck="false"
+          >
+        </div>
+
+        <!-- Timestamp Section -->
+        <div class="range-section">
+          <label class="input-label">CLIP RANGE</label>
+          <div class="range-inputs">
+            <input 
+              type="text" 
+              id="start-time" 
+              placeholder="00:00:01" 
+              required
+              autocomplete="off"
+            >
+            <span class="range-divider">to</span>
+            <input 
+              type="text" 
+              id="end-time" 
+              placeholder="00:00:30" 
+              required
+              autocomplete="off"
+            >
+          </div>
+        </div>
+
+        <!-- Helper Hint -->
+        <p class="helper-text">
+          You can use HH:MM:SS, MM:SS, or seconds, and it crops directly from Google Drive.
+        </p>
+
+        <!-- Quality Selector -->
+        <div class="input-group">
+          <label for="quality-preset" class="input-label">QUALITY PRESET</label>
+          <div class="quality-selector">
+            <label class="quality-option">
+              <input type="radio" name="quality" value="standard" checked>
+              <div class="quality-card">
+                <span class="quality-name">Standard</span>
+                <span class="quality-desc">Fast encode, great quality (CRF 18)</span>
+              </div>
+            </label>
+            <label class="quality-option">
+              <input type="radio" name="quality" value="enhanced">
+              <div class="quality-card">
+                <span class="quality-name">✨ Enhanced</span>
+                <span class="quality-desc">Sharpening + denoising, slower encode</span>
+              </div>
+            </label>
+            <label class="quality-option">
+              <input type="radio" name="quality" value="maximum">
+              <div class="quality-card">
+                <span class="quality-name">🔥 Maximum</span>
+                <span class="quality-desc">Best filters + highest bitrate, slowest</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button type="submit" id="submit-btn" class="submit-btn">
+          Download Clip
+        </button>
+      </form>
+
+      <!-- Status Indicators (Dynamic) -->
+      <div id="status-container" class="status-container hidden">
+        <div class="status-inner">
+          <div class="progress-bar-bg">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+          </div>
+          <span id="status-text">Clip ready (8.85 MB). Starting download...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Connection Status & Sharing Settings -->
+    <div id="config-status-card" class="config-status-card hidden">
+      <div class="config-header">
+        <div class="config-title-group">
+          <svg class="config-title-icon" viewBox="0 0 24 24" width="18" height="18">
+            <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+          </svg>
+          <span class="config-title">Connection Status</span>
+        </div>
+        <div class="config-badges">
+          <span id="badge-api-key" class="badge">API Key</span>
+          <span id="badge-service-account" class="badge">Service Account</span>
+        </div>
+      </div>
+      
+      <div id="sa-details-section" class="sa-details-section hidden">
+        <div class="sa-email-container">
+          <span class="sa-email-label">SERVICE ACCOUNT EMAIL</span>
+          <div class="sa-email-box">
+            <input type="text" id="sa-email-input" class="sa-email-field" readonly value="" spellcheck="false">
+            <button type="button" id="copy-sa-email-btn" class="copy-btn">
+              <svg class="copy-icon" viewBox="0 0 24 24" width="14" height="14">
+                <path fill="currentColor" d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+              </svg>
+              <span id="copy-btn-text">Copy</span>
+            </button>
+          </div>
+        </div>
+        <div class="tips-box">
+          <span class="tips-icon">💡</span>
+          <div class="tips-content">
+            <strong>Pro Tip:</strong> Share your parent Google Drive folder with this email once. All videos inside will automatically be accessible without sharing them one by one!
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key Warning Banner (shown dynamically) -->
+    <div id="api-warning" class="api-warning hidden">
+      <span class="api-warning-icon">⚠</span>
+      <div>
+        <strong>No API Key configured.</strong> The server will attempt to download the full file before clipping,
+        which may fail on large files due to Google's public download quota.
+        <a href="#" onclick="document.getElementById('api-warning').classList.add('hidden'); return false;">Dismiss</a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p class="credits">by Antigravity</p>
+      <p id="footer-status" class="footer-status">Everything's ready.</p>
+    </footer>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>
