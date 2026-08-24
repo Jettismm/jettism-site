@@ -6,30 +6,30 @@
 <title>Jettism — Stream VOD Library</title>
 <style>
   :root, [data-theme="dark"]{
-    --bg-0:#0e01ca;
-    --bg-1:#0a0299;
-    --card:#0c0a72;
-    --card-hover:#120f8f;
-    --line: rgba(255,255,255,0.16);
-    --blue-deep:#1a1ab0;
-    --blue-glow:#5b6bff;
+    --bg-0:#313338;
+    --bg-1:#2b2d31;
+    --card:#2b2d31;
+    --card-hover:#35373c;
+    --line: rgba(255,255,255,0.06);
+    --blue-deep:#404249;
+    --blue-glow:#5865f2;
     --gold:#f0ed6a;
-    --text-hi:#f6f7ff;
-    --text-lo:#b3b6f0;
+    --text-hi:#f2f3f5;
+    --text-lo:#949ba4;
     --radius:14px;
   }
 
   [data-theme="light"]{
-    --bg-0:#eaf0ff;
-    --bg-1:#dbe6ff;
+    --bg-0:#f2f3f5;
+    --bg-1:#e3e5e8;
     --card:#ffffff;
-    --card-hover:#f0f4ff;
-    --line: rgba(30,40,90,0.14);
-    --blue-deep:#c7d4ff;
-    --blue-glow:#5b6bff;
-    --gold:#c99a00;
-    --text-hi:#13173a;
-    --text-lo:#5a5f8a;
+    --card-hover:#f7f8f9;
+    --line: rgba(6,6,7,0.08);
+    --blue-deep:#e3e5e8;
+    --blue-glow:#5865f2;
+    --gold:#b8860b;
+    --text-hi:#060607;
+    --text-lo:#5c5e66;
     --radius:14px;
   }
 
@@ -47,8 +47,8 @@
     content:"";
     position:fixed; inset:0;
     background:
-      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(240,237,106,0.10), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(91,107,255,0.20), transparent 55%),
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(240,237,106,0.04), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(88,101,242,0.08), transparent 55%),
       linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
     z-index:-1;
   }
@@ -145,7 +145,7 @@
     position:relative;
     aspect-ratio: 16/9;
     background:
-      linear-gradient(135deg, var(--blue-deep), #0e1526);
+      linear-gradient(135deg, var(--blue-deep), #1e1f22);
     display:flex; align-items:center; justify-content:center;
     overflow:hidden;
   }
@@ -191,7 +191,7 @@
     background: var(--blue-deep);
     border-color: rgba(74,143,255,0.4);
   }
-  .btn.download:hover{ background: var(--blue-glow); border-color: var(--blue-glow); color:#08101f; }
+  .btn.download:hover{ background: var(--blue-glow); border-color: var(--blue-glow); color:#f2f3f5; }
   .btn svg{ width:14px; height:14px; }
 
   /* Timestamp panel */
