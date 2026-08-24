@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stream VOD Library</title>
-<link rel="icon" type="image/png" href="/jettismicontransparent.png">
+<title>Jettism — Stream VOD Library</title>
 <style>
   :root{
     --bg-0:#0e01ca;
@@ -303,6 +302,26 @@
     </div>
   </div>
 
+  <div id="editTsOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius); width:100%; max-width:520px; padding:24px; max-height:88vh; overflow-y:auto;">
+      <h2 id="editTsTitle" style="margin:0 0 4px; font-size:18px;">Edit timestamps</h2>
+      <p style="margin:0 0 18px; font-size:12.5px; color:var(--text-lo);">Add, remove, or fix timestamps for this stream. One per line, same format used elsewhere — this fully replaces the list below.</p>
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Password</label>
+      <input id="editTsPassword" type="password" class="search" style="width:100%; margin-bottom:14px;" placeholder="Only you should know this">
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Timestamps</label>
+      <textarea id="editTsTextarea" class="search" style="width:100%; height:220px; margin-bottom:16px; resize:vertical; font-family:inherit;" placeholder="1. 08:35-10:51 (aftermath of the biggest build)"></textarea>
+
+      <div id="editTsError" style="color:#ff8a8a; font-size:12.5px; margin-bottom:12px; display:none;"></div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="btn" id="cancelEditTs" style="flex:1;">Cancel</div>
+        <div class="btn download" id="submitEditTs" style="flex:1;">Save Timestamps</div>
+      </div>
+    </div>
+  </div>
+
   <div class="grid" id="grid"></div>
   <div class="empty" id="emptyState" style="display:none;">
     <b>No VODs match that search</b>
@@ -380,6 +399,10 @@ function render(){
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
             Timestamps
           </div>
+          <div class="btn edit-ts" data-date="${v.date}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Edit
+          </div>
           <a class="btn download" href="${v.download}" download>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
             Download
@@ -395,6 +418,10 @@ function render(){
 
     card.querySelector('.ts-toggle').addEventListener('click', ()=>{
       card.querySelector('.timestamps').classList.toggle('open');
+    });
+
+    card.querySelector('.edit-ts').addEventListener('click', ()=>{
+      openEditTimestamps(v);
     });
 
     grid.appendChild(card);
@@ -502,8 +529,9 @@ function parseDriveFileId(link){
 function parseTimestampBlock(text){
   const out = [];
   text.split('\n').forEach(line=>{
-    const m = line.trim().match(/^(?:\d+\.\s*)?(\d{1,2}(?::\d{2}){1,2})\s*-\s*(\d{1,2}(?::\d{2}){1,2})\s*\((.*)\)\s*$/);
-    if(m) out.push([m[1], m[3].trim()]);
+    // accepts "12:34-13:00 (label)" (end time discarded) or plain "12:34 (label)"
+    const m = line.trim().match(/^(?:\d+\.\s*)?(\d{1,2}(?::\d{2}){1,2})(?:\s*-\s*\d{1,2}(?::\d{2}){1,2})?\s*\((.*)\)\s*$/);
+    if(m) out.push([m[1], m[2].trim()]);
   });
   return out;
 }
@@ -596,6 +624,73 @@ document.getElementById('submitAddVod').addEventListener('click', async ()=>{
   document.getElementById('vodDate').value = '';
   document.getElementById('vodTitle').value = '';
   document.getElementById('vodTimestamps').value = '';
+});
+
+// ---- Edit Timestamps ----
+const editTsOverlay = document.getElementById('editTsOverlay');
+let editingDate = null;
+
+function timestampsToText(timestamps){
+  return timestamps.map(([t,label]) => `${t} (${label})`).join('\n');
+}
+
+function openEditTimestamps(v){
+  editingDate = v.date;
+  document.getElementById('editTsTitle').textContent = `Edit timestamps — ${v.title}`;
+  document.getElementById('editTsTextarea').value = timestampsToText(v.timestamps);
+  document.getElementById('editTsPassword').value = localStorage.getItem('vod_site_pw') || '';
+  document.getElementById('editTsError').style.display = 'none';
+  editTsOverlay.style.display = 'flex';
+}
+
+document.getElementById('cancelEditTs').addEventListener('click', ()=>{ editTsOverlay.style.display = 'none'; });
+editTsOverlay.addEventListener('click', (e)=>{ if(e.target === editTsOverlay) editTsOverlay.style.display = 'none'; });
+
+async function updateTimestampsRemote(date, timestamps, password){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'update_timestamps', password, date, timestamps, deviceId: getDeviceId() })
+  });
+  return res.json();
+}
+
+document.getElementById('submitEditTs').addEventListener('click', async ()=>{
+  const errorEl = document.getElementById('editTsError');
+  errorEl.style.display = 'none';
+
+  const password = document.getElementById('editTsPassword').value;
+  const timestamps = parseTimestampBlock(document.getElementById('editTsTextarea').value);
+
+  const submitBtn = document.getElementById('submitEditTs');
+  submitBtn.textContent = 'Saving…';
+
+  let result;
+  try{
+    result = await Promise.race([
+      updateTimestampsRemote(editingDate, timestamps, password),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+    ]);
+  } catch(err){
+    console.error(err);
+    submitBtn.textContent = 'Save Timestamps';
+    errorEl.textContent = err.message === 'timeout'
+      ? 'Timed out reaching the backend.'
+      : 'Could not reach the backend — check your connection.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  submitBtn.textContent = 'Save Timestamps';
+
+  if(!result.success){
+    errorEl.textContent = result.error || 'Something went wrong saving these timestamps.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  VODS = result.vods;
+  render();
+  editTsOverlay.style.display = 'none';
 });
 
 // ---- Site-wide login gate ----
