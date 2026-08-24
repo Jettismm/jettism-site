@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jettism — Stream VOD Library</title>
 <style>
-  :root{
+  :root, [data-theme="dark"]{
     --bg-0:#0e01ca;
     --bg-1:#0a0299;
     --card:#0c0a72;
@@ -16,6 +16,20 @@
     --gold:#f0ed6a;
     --text-hi:#f6f7ff;
     --text-lo:#b3b6f0;
+    --radius:14px;
+  }
+
+  [data-theme="light"]{
+    --bg-0:#eaf0ff;
+    --bg-1:#dbe6ff;
+    --card:#ffffff;
+    --card-hover:#f0f4ff;
+    --line: rgba(30,40,90,0.14);
+    --blue-deep:#c7d4ff;
+    --blue-glow:#5b6bff;
+    --gold:#c99a00;
+    --text-hi:#13173a;
+    --text-lo:#5a5f8a;
     --radius:14px;
   }
 
@@ -220,14 +234,18 @@
 </head>
 <body>
 
-<div id="loginGate" style="position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background: linear-gradient(180deg, #0e01ca 0%, #0a0299 100%);">
-  <div style="background:#0c0a72; border:1px solid rgba(255,255,255,0.16); border-radius:14px; width:100%; max-width:420px; padding:32px; text-align:center;">
-    <p style="margin:0 0 6px; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#b3b6f0;">Jettism · Productions</p>
-    <h1 style="margin:0 0 20px; font-size:22px; color:#f6f7ff;">Enter password to continue</h1>
+<div id="themeToggle" style="position:fixed; top:16px; right:16px; z-index:101; cursor:pointer; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:12.5px; color:var(--text-hi); display:flex; align-items:center; gap:6px;">
+  <span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Dark</span>
+</div>
+
+<div id="loginGate" style="position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background: linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);">
+  <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; width:100%; max-width:420px; padding:32px; text-align:center;">
+    <p style="margin:0 0 6px; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-lo);">Jettism · Productions</p>
+    <h1 style="margin:0 0 20px; font-size:22px; color:var(--text-hi);">Enter password to continue</h1>
     <input id="gatePassword" type="password" placeholder="Password"
-      style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid rgba(255,255,255,0.16); background:rgba(255,255,255,0.03); color:#f6f7ff; font-size:14px; margin-bottom:12px;">
+      style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid var(--line); background:rgba(120,130,255,0.06); color:var(--text-hi); font-size:14px; margin-bottom:12px;">
     <div id="gateError" style="color:#ff8a8a; font-size:12.5px; margin-bottom:14px; display:none;"></div>
-    <div id="gateSubmit" style="cursor:pointer; padding:11px 16px; border-radius:8px; font-size:13px; font-weight:600; background:#5b6bff; border:1px solid rgba(74,143,255,0.4); color:#f6f7ff;">Unlock</div>
+    <div id="gateSubmit" style="cursor:pointer; padding:11px 16px; border-radius:8px; font-size:13px; font-weight:600; background:var(--blue-glow); border:1px solid var(--blue-glow); color:#f6f7ff;">Unlock</div>
   </div>
 </div>
 
@@ -488,7 +506,7 @@ async function loadFromCloud(sitePassword){
   } catch(err){
     console.error(err);
     statusEl.textContent = 'Could not reach shared storage.';
-    return { success: false, error: 'Could not reach the backend.' };
+    return { success: false, networkError: true, error: 'Could not reach the backend — try again in a moment.' };
   }
 }
 
@@ -698,24 +716,40 @@ const loginGate = document.getElementById('loginGate');
 const siteContent = document.getElementById('siteContent');
 const gateError = document.getElementById('gateError');
 const gatePasswordInput = document.getElementById('gatePassword');
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // stay logged in for 12 hours
+
+function saveSession(password){
+  localStorage.setItem('vod_site_session', JSON.stringify({ pw: password, ts: Date.now() }));
+}
+
+function getSavedSession(){
+  try{
+    const raw = localStorage.getItem('vod_site_session');
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed.pw || !parsed.ts) return null;
+    if(Date.now() - parsed.ts > SESSION_TTL_MS) return null; // expired — needs a fresh login
+    return parsed;
+  } catch(err){
+    return null;
+  }
+}
 
 async function unlockSite(password){
   gateError.style.display = 'none';
   const data = await loadFromCloud(password);
   if(data.success){
-    localStorage.setItem('vod_site_pw', password);
+    saveSession(password); // (re)starts the 12-hour window on every successful check
     loginGate.style.display = 'none';
     siteContent.style.display = '';
     render();
-    // pre-fill the Add VOD password field with the same site password, so
-    // it doesn't need to be typed twice
     const addPwField = document.getElementById('vodPassword');
     if(addPwField) addPwField.value = password;
   } else {
     gateError.textContent = data.error || 'Incorrect password.';
     gateError.style.display = 'block';
   }
-  return data.success;
+  return data;
 }
 
 document.getElementById('gateSubmit').addEventListener('click', ()=>{
@@ -725,13 +759,35 @@ gatePasswordInput.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter') unlockSite(gatePasswordInput.value);
 });
 
-// Try a saved password first so returning visitors skip the gate entirely.
-const savedPassword = localStorage.getItem('vod_site_pw');
-if(savedPassword){
-  unlockSite(savedPassword).then(ok=>{
-    if(!ok) localStorage.removeItem('vod_site_pw'); // password changed since — clear stale save
+// Try a saved, still-valid session first so returning visitors skip the gate.
+// Only a genuine "wrong password" response clears the saved session — a
+// network hiccup or a temporary rate-limit ban leaves it in place, so a
+// refresh a moment later can still succeed without forcing a manual re-login.
+const savedSession = getSavedSession();
+if(savedSession){
+  unlockSite(savedSession.pw).then(data=>{
+    if(!data.success && !data.networkError && !data.banned){
+      localStorage.removeItem('vod_site_session'); // password was actually changed — needs real re-login
+    }
   });
 }
+
+// ---- Light / dark theme toggle ----
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggleIcon').textContent = theme === 'light' ? '☀️' : '🌙';
+  document.getElementById('themeToggleLabel').textContent = theme === 'light' ? 'Light' : 'Dark';
+}
+
+const savedTheme = localStorage.getItem('vod_theme') || 'dark';
+applyTheme(savedTheme);
+
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+  const next = current === 'light' ? 'dark' : 'light';
+  localStorage.setItem('vod_theme', next);
+  applyTheme(next);
+});
 </script>
 
 </body>
