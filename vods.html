@@ -1,144 +1,817 @@
-// ---- Jettism VOD Library backend ----
-// Deploy this as a Web App (Execute as: Me, Who has access: Anyone).
-// Paste the resulting /exec URL into vods.html as APPS_SCRIPT_URL.
-
-const SHEET_NAME = "VODs";           // tab name in your Google Sheet
-const ACCESS_PASSWORD = "ProductionTeam"; // shared password for both site login and adding VODs
-const MAX_ATTEMPTS = 3;
-const BAN_MINUTES = 5;
-
-// GET requests must include ?password=...&deviceId=... — the list itself
-// is gated, not just the page, so the data can't be pulled directly by URL.
-function doGet(e) {
-  const password = (e.parameter && e.parameter.password) || "";
-  const deviceId = (e.parameter && e.parameter.deviceId) || "unknown";
-
-  const check = checkPassword(deviceId, password);
-  if (!check.ok) return check.response;
-
-  return jsonResponse({ success: true, vods: getAllVods() });
-}
-
-function doPost(e) {
-  const body = JSON.parse(e.postData.contents);
-  const deviceId = body.deviceId || "unknown";
-
-  const check = checkPassword(deviceId, body.password || "");
-  if (!check.ok) return check.response;
-
-  if (body.action === "login") {
-    // just confirming the password is correct — no data changes
-    return jsonResponse({ success: true });
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jettism — Stream VOD Library</title>
+<link rel="icon" type="image/png" href="jettismicontransparent.png">
+<style>
+  :root, [data-theme="dark"]{
+    --bg-0:#313338;
+    --bg-1:#2b2d31;
+    --card:#2b2d31;
+    --card-hover:#35373c;
+    --line: rgba(255,255,255,0.06);
+    --blue-deep:#404249;
+    --blue-glow:#5865f2;
+    --gold:#f0ed6a;
+    --text-hi:#f2f3f5;
+    --text-lo:#949ba4;
+    --radius:14px;
   }
 
-  if (body.action === "update_timestamps") {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-    const data = sheet.getDataRange().getValues();
-    let rowIndex = -1;
-    for (let i = 1; i < data.length; i++) {
-      if (normalizeDate(data[i][2]) === body.date) {
-        rowIndex = i + 1; // sheet rows are 1-indexed, +1 more for header already skipped by loop start
-        break;
-      }
+  [data-theme="light"]{
+    --bg-0:#f2f3f5;
+    --bg-1:#e3e5e8;
+    --card:#ffffff;
+    --card-hover:#f7f8f9;
+    --line: rgba(6,6,7,0.08);
+    --blue-deep:#e3e5e8;
+    --blue-glow:#5865f2;
+    --gold:#b8860b;
+    --text-hi:#060607;
+    --text-lo:#5c5e66;
+    --radius:14px;
+  }
+
+  [data-theme="blue"]{
+    --bg-0:#2547b8;
+    --bg-1:#1c3690;
+    --card:#1f3a99;
+    --card-hover:#2647ab;
+    --line: rgba(255,255,255,0.14);
+    --blue-deep:#2c4fc0;
+    --blue-glow:#5b7fff;
+    --gold:#f0ed6a;
+    --text-hi:#f2f5ff;
+    --text-lo:#aebbe8;
+    --radius:14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin:0; padding:0;
+    background: var(--bg-0);
+    color: var(--text-hi);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height:100vh;
+  }
+
+  body::before{
+    content:"";
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(240,237,106,0.04), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(88,101,242,0.08), transparent 55%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+    z-index:-1;
+  }
+
+  header{
+    padding: 56px 6vw 28px;
+    display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand-mark{
+    display:flex; align-items:center; gap:14px;
+  }
+
+  .crown-icon{ height:34px; width:auto; flex-shrink:0; }
+
+  .eyebrow{
+    font-size:12px; letter-spacing:.18em; text-transform:uppercase;
+    color: var(--text-lo); margin:0 0 6px;
+  }
+
+  h1{
+    font-size: clamp(28px, 4vw, 42px);
+    margin:0; font-weight:700; letter-spacing:-0.02em;
+  }
+
+  .stats{
+    display:flex; gap:28px; font-size:13px; color:var(--text-lo);
+  }
+  .stats b{ color:var(--text-hi); font-size:15px; display:block; font-weight:700;}
+
+  main{ padding: 40px 6vw 100px; }
+
+  .toolbar{
+    display:flex; gap:12px; margin-bottom:32px; flex-wrap:wrap; align-items:center;
+  }
+  .search{
+    flex:1; min-width:220px;
+    background: var(--card);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:11px 16px;
+    color:var(--text-hi);
+    font-size:14px;
+  }
+  .search::placeholder{ color: var(--text-lo); }
+  .search:focus{ outline:none; border-color: var(--blue-glow); }
+
+  .filter-chip{
+    background: var(--card);
+    border:1px solid var(--line);
+    color: var(--text-lo);
+    padding:10px 16px;
+    border-radius:10px;
+    font-size:13px;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .filter-chip.active, .filter-chip:hover{
+    color: var(--text-hi);
+    border-color: var(--blue-glow);
+    background: var(--blue-deep);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 22px;
+  }
+
+  @media (max-width: 1100px){ .grid{ grid-template-columns: repeat(3,1fr);} }
+  @media (max-width: 820px){ .grid{ grid-template-columns: repeat(2,1fr);} }
+  @media (max-width: 540px){ .grid{ grid-template-columns: 1fr;} }
+
+  .card{
+    background: var(--card);
+    border:1px solid var(--line);
+    border-radius: var(--radius);
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    opacity:0; transform: translateY(18px);
+    transition: opacity .15s ease, transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .card.in-view{
+    animation: fadeUp .6s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes fadeUp{
+    to{ opacity:1; transform: translateY(0); }
+  }
+  .card:hover{ border-color: rgba(74,143,255,0.4); background: var(--card-hover); }
+
+  .thumb{
+    position:relative;
+    aspect-ratio: 16/9;
+    background:
+      linear-gradient(135deg, var(--blue-deep), #1e1f22);
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .thumb .play{
+    width:46px; height:46px; border-radius:50%;
+    background: rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.18);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--text-hi);
+    backdrop-filter: blur(4px);
+  }
+  .duration-badge{
+    position:absolute; bottom:8px; right:8px;
+    background: rgba(0,0,0,0.65);
+    padding:3px 7px; border-radius:6px;
+    font-size:11px; color:var(--text-hi);
+    font-variant-numeric: tabular-nums;
+  }
+  .card-body{ padding:16px 16px 14px; display:flex; flex-direction:column; gap:10px; flex:1; }
+
+  .vod-title{ font-size:14.5px; font-weight:600; line-height:1.35; margin:0; color:var(--text-hi); }
+  .vod-meta{ font-size:12px; color:var(--text-lo); display:flex; gap:10px; }
+
+  .card-actions{
+    display:flex; gap:8px; margin-top:auto; padding-top:6px;
+  }
+
+  .btn{
+    flex:1;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 10px;
+    border-radius:8px;
+    font-size:12.5px; font-weight:600;
+    cursor:pointer;
+    border:1px solid var(--line);
+    background: rgba(255,255,255,0.02);
+    color: var(--text-hi);
+    transition: all .15s ease;
+    text-decoration:none;
+  }
+  .btn:hover{ border-color: var(--blue-glow); background: rgba(74,143,255,0.12); }
+  .btn.download{
+    background: var(--blue-deep);
+    border-color: rgba(74,143,255,0.4);
+  }
+  .btn.download:hover{ background: var(--blue-glow); border-color: var(--blue-glow); color:#f2f3f5; }
+  .btn svg{ width:14px; height:14px; }
+
+  /* Timestamp panel */
+  .timestamps{
+    display:none;
+    flex-direction:column;
+    gap:6px;
+    padding:12px 16px 16px;
+    border-top:1px solid var(--line);
+    background: rgba(0,0,0,0.15);
+  }
+  .timestamps.open{ display:flex; }
+  .ts-row{
+    display:flex; justify-content:space-between; gap:10px;
+    font-size:12.5px; color:var(--text-lo);
+    padding:5px 6px; border-radius:6px;
+    cursor:pointer;
+  }
+  .ts-row:hover{ background: rgba(74,143,255,0.1); color: var(--text-hi); }
+  .ts-row span:first-child{ color: var(--blue-glow); font-variant-numeric: tabular-nums; flex-shrink:0; }
+
+  .empty{
+    text-align:center; padding:80px 20px; color:var(--text-lo);
+  }
+  .empty b{ color: var(--text-hi); display:block; margin-bottom:6px; font-size:16px; }
+
+  .note{
+    max-width: 720px;
+    margin: 0 auto 36px;
+    padding: 14px 18px;
+    background: var(--card);
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    font-size: 12.5px;
+    color: var(--text-lo);
+    line-height: 1.6;
+  }
+  .note code{ color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div id="themeToggle" style="position:fixed; top:16px; right:16px; z-index:101; cursor:pointer; background:var(--card); border:1px solid var(--line); border-radius:20px; padding:8px 14px; font-size:12.5px; color:var(--text-hi); display:flex; align-items:center; gap:6px;">
+  <span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">Dark</span>
+</div>
+
+<div id="loginGate" style="position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background: linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);">
+  <div style="background:var(--card); border:1px solid var(--line); border-radius:14px; width:100%; max-width:420px; padding:32px; text-align:center;">
+    <p style="margin:0 0 6px; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-lo);">Jettism · Productions</p>
+    <h1 style="margin:0 0 20px; font-size:22px; color:var(--text-hi);">Enter password to continue</h1>
+    <input id="gatePassword" type="password" placeholder="Password"
+      style="width:100%; padding:12px 16px; border-radius:10px; border:1px solid var(--line); background:rgba(120,130,255,0.06); color:var(--text-hi); font-size:14px; margin-bottom:12px;">
+    <div id="gateError" style="color:#ff8a8a; font-size:12.5px; margin-bottom:14px; display:none;"></div>
+    <div id="gateSubmit" style="cursor:pointer; padding:11px 16px; border-radius:8px; font-size:13px; font-weight:600; background:var(--blue-glow); border:1px solid var(--blue-glow); color:#f6f7ff;">Unlock</div>
+  </div>
+</div>
+
+<div id="siteContent" style="display:none;">
+
+<header>
+  <div class="brand-mark">
+    <img class="crown-icon" src="data:image/png;base64,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" alt="Jettism crown logo">
+    <div>
+      <p class="eyebrow">Jettism · Productions</p>
+      <h1>Stream VOD Library</h1>
+    </div>
+  </div>
+  <div class="stats">
+    <div><b id="statTotal">0</b>Total VODs</div>
+    <div><b id="statHours">0h</b>Runtime</div>
+  </div>
+</header>
+
+<main>
+  <div class="note">
+    Download buttons link to the relevant monthly Drive folder (May / June) rather than individual files —
+    connect Drive so each VOD can point straight to its own file. Duration on streams is estimated from the
+    last logged timestamp. The 6/1 stream has no timestamps logged yet.
+  </div>
+
+  <div class="toolbar">
+    <input class="search" id="searchInput" placeholder="Search VODs by title or moment…">
+    <div class="filter-chip active" data-month="all">All Months</div>
+    <div class="filter-chip" data-month="05">May</div>
+    <div class="filter-chip" data-month="06">June</div>
+    <div class="filter-chip" data-month="07">July</div>
+    <select id="sortSelect" class="search" style="flex:0 0 auto; min-width:170px; cursor:pointer;">
+      <option value="newest">Sort: Newest first</option>
+      <option value="oldest">Sort: Oldest first</option>
+      <option value="most_ts">Sort: Most timestamps</option>
+      <option value="least_ts">Sort: Least timestamps</option>
+    </select>
+    <div class="btn download" id="addVodBtn" style="flex:0 0 auto; min-width:120px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Add VOD
+    </div>
+  </div>
+  <div id="syncStatus" style="font-size:11.5px; color:var(--text-lo); margin:-18px 0 26px;"></div>
+
+  <div id="addVodOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius); width:100%; max-width:520px; padding:24px; max-height:88vh; overflow-y:auto;">
+      <h2 style="margin:0 0 4px; font-size:18px;">Add a new VOD</h2>
+      <p style="margin:0 0 18px; font-size:12.5px; color:var(--text-lo);">Paste the Drive share link, set the stream date, and (optionally) paste timestamps in the same format used elsewhere.</p>
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Password</label>
+      <input id="vodPassword" type="password" class="search" style="width:100%; margin-bottom:14px;" placeholder="Only you should know this">
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Drive share link</label>
+      <input id="vodDriveLink" class="search" style="width:100%; margin-bottom:14px;" placeholder="https://drive.google.com/file/d/…">
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Stream date</label>
+      <input id="vodDate" type="date" class="search" style="width:100%; margin-bottom:14px;">
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Title (optional)</label>
+      <input id="vodTitle" class="search" style="width:100%; margin-bottom:14px;" placeholder="Leave blank to auto-generate">
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Timestamps (optional — paste block, one per line)</label>
+      <textarea id="vodTimestamps" class="search" style="width:100%; height:110px; margin-bottom:16px; resize:vertical; font-family:inherit;" placeholder="1. 08:35-10:51 (aftermath of the biggest build)"></textarea>
+
+      <div id="addVodError" style="color:#ff8a8a; font-size:12.5px; margin-bottom:12px; display:none;"></div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="btn" id="cancelAddVod" style="flex:1;">Cancel</div>
+        <div class="btn download" id="submitAddVod" style="flex:1;">Save VOD</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="editTsOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:var(--card); border:1px solid var(--line); border-radius:var(--radius); width:100%; max-width:520px; padding:24px; max-height:88vh; overflow-y:auto;">
+      <h2 id="editTsTitle" style="margin:0 0 4px; font-size:18px;">Edit timestamps</h2>
+      <p style="margin:0 0 18px; font-size:12.5px; color:var(--text-lo);">Add, remove, or fix timestamps for this stream. One per line, same format used elsewhere — this fully replaces the list below.</p>
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Password</label>
+      <input id="editTsPassword" type="password" class="search" style="width:100%; margin-bottom:14px;" placeholder="Only you should know this">
+
+      <label style="font-size:12px; color:var(--text-lo); display:block; margin-bottom:6px;">Timestamps</label>
+      <textarea id="editTsTextarea" class="search" style="width:100%; height:220px; margin-bottom:16px; resize:vertical; font-family:inherit;" placeholder="1. 08:35-10:51 (aftermath of the biggest build)"></textarea>
+
+      <div id="editTsError" style="color:#ff8a8a; font-size:12.5px; margin-bottom:12px; display:none;"></div>
+
+      <div style="display:flex; gap:10px;">
+        <div class="btn" id="cancelEditTs" style="flex:1;">Cancel</div>
+        <div class="btn download" id="submitEditTs" style="flex:1;">Save Timestamps</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyState" style="display:none;">
+    <b>No VODs match that search</b>
+    Try a different title or clear the filter.
+  </div>
+</main>
+</div>
+
+<script>
+// ---- Shared storage config (Google Apps Script + Sheet) ----
+// See vods-apps-script-code.gs for the backend. Deploy it as a Web App,
+// then paste the /exec URL below. This URL is safe to be public — the
+// password check happens inside the Apps Script, not here.
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwy9HC1kHpiSyF8MjGcgJd1jeb6kCxY7bFVv-RE0JnhG5Uq1izRQ4VIg8HHW5n5ofti/exec";
+
+let VODS = [];
+
+const grid = document.getElementById('grid');
+const emptyState = document.getElementById('emptyState');
+let activeMonth = 'all';
+let query = '';
+let activeSort = 'newest';
+
+function fmtDate(d){
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+}
+
+function durationToMinutes(d){
+  if(d === 'TBD') return 0;
+  const parts = d.split(':').map(Number);
+  if(parts.length===3) return parts[0]*60+parts[1]+parts[2]/60;
+  return parts[0]+parts[1]/60;
+}
+
+function render(){
+  grid.innerHTML = '';
+  const q = query.toLowerCase();
+  const filtered = VODS.filter(v=>{
+    const month = v.date.slice(5,7);
+    const matchesMonth = activeMonth==='all' || month===activeMonth;
+    const matchesQuery = !q || v.title.toLowerCase().includes(q) ||
+      v.timestamps.some(([t,label])=>label.toLowerCase().includes(q));
+    return matchesMonth && matchesQuery;
+  });
+
+  filtered.sort((a,b)=>{
+    switch(activeSort){
+      case 'oldest': return a.date.localeCompare(b.date);
+      case 'most_ts': return b.timestamps.length - a.timestamps.length;
+      case 'least_ts': return a.timestamps.length - b.timestamps.length;
+      case 'newest':
+      default: return b.date.localeCompare(a.date);
     }
-    if (rowIndex === -1) {
-      return jsonResponse({ success: false, error: "Couldn't find a stream with that date." });
+  });
+
+  emptyState.style.display = filtered.length ? 'none' : 'block';
+
+  filtered.forEach((v, i)=>{
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.transitionDelay = (i%4)*0.05 + 's';
+
+    card.innerHTML = `
+      <div class="thumb">
+        <div class="play">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <span class="duration-badge">${v.duration}</span>
+      </div>
+      <div class="card-body">
+        <p class="vod-title">${v.title}</p>
+        <div class="vod-meta"><span>${fmtDate(v.date)}</span></div>
+        <div class="card-actions">
+          <div class="btn ts-toggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            Timestamps
+          </div>
+          <div class="btn edit-ts" data-date="${v.date}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Edit
+          </div>
+          <a class="btn download" href="${v.download}" download>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></svg>
+            Download
+          </a>
+        </div>
+      </div>
+      <div class="timestamps">
+        ${v.timestamps.length
+          ? v.timestamps.map(([t,label])=>`<div class="ts-row"><span>${t}</span><span>${label}</span></div>`).join('')
+          : `<div class="ts-row" style="cursor:default;">Timestamps not logged yet for this stream</div>`}
+      </div>
+    `;
+
+    card.querySelector('.ts-toggle').addEventListener('click', ()=>{
+      card.querySelector('.timestamps').classList.toggle('open');
+    });
+
+    card.querySelector('.edit-ts').addEventListener('click', ()=>{
+      openEditTimestamps(v);
+    });
+
+    grid.appendChild(card);
+  });
+
+  // stats
+  document.getElementById('statTotal').textContent = VODS.length;
+  const totalMin = VODS.reduce((sum,v)=>sum+durationToMinutes(v.duration),0);
+  document.getElementById('statHours').textContent = Math.round(totalMin/60) + 'h';
+
+  // fade-in on scroll
+  const cards = document.querySelectorAll('.card');
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){ e.target.classList.add('in-view'); io.unobserve(e.target); }
+    });
+  }, { threshold: 0.15 });
+  cards.forEach(c=>io.observe(c));
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip=>{
+  chip.addEventListener('click', ()=>{
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    chip.classList.add('active');
+    activeMonth = chip.dataset.month;
+    render();
+  });
+});
+
+document.getElementById('searchInput').addEventListener('input', (e)=>{
+  query = e.target.value;
+  render();
+});
+
+document.getElementById('sortSelect').addEventListener('change', (e)=>{
+  activeSort = e.target.value;
+  render();
+});
+
+// ---- Shared storage (Google Apps Script) — reads are public, writes are password-checked server-side ----
+function storageConfigured(){
+  return !APPS_SCRIPT_URL.startsWith('YOUR_');
+}
+
+async function loadFromCloud(sitePassword){
+  const statusEl = document.getElementById('syncStatus');
+  if(!storageConfigured()){
+    statusEl.textContent = 'Add your Apps Script /exec URL at the top of this file to make this shared.';
+    return { success: true };
+  }
+  try{
+    const url = `${APPS_SCRIPT_URL}?action=list&password=${encodeURIComponent(sitePassword)}&deviceId=${encodeURIComponent(getDeviceId())}`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('fetch failed ' + res.status);
+    const data = await res.json();
+    if(data.success && Array.isArray(data.vods)){
+      VODS = data.vods;
+      render();
     }
-    sheet.getRange(rowIndex, 6).setValue(JSON.stringify(body.timestamps || [])); // column F = timestamps
-    return jsonResponse({ success: true, vods: getAllVods() });
-  }
-
-  // default / "add" action
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  const entry = body.entry || {};
-  sheet.appendRow([
-    entry.title || "",
-    "", // channel column kept for backward compatibility with existing rows, no longer used
-    entry.date || "",
-    entry.duration || "TBD",
-    entry.download || "",
-    JSON.stringify(entry.timestamps || [])
-  ]);
-
-  return jsonResponse({ success: true, vods: getAllVods() });
-}
-
-// Shared password check + rate limiting for both login and add-VOD flows.
-// Returns { ok: true } on success, or { ok: false, response: <ContentService output> } on failure.
-function checkPassword(deviceId, password) {
-  const cache = CacheService.getScriptCache();
-  const banKey = "vod_ban_" + deviceId;
-  const failKey = "vod_fail_" + deviceId;
-
-  if (cache.get(banKey)) {
-    return { ok: false, response: jsonResponse({ success: false, banned: true, error: "Too many attempts. Try again in a few minutes." }) };
-  }
-
-  if (password !== ACCESS_PASSWORD) {
-    const fails = Number(cache.get(failKey) || 0) + 1;
-    if (fails >= MAX_ATTEMPTS) {
-      cache.put(banKey, "1", BAN_MINUTES * 60);
-      cache.remove(failKey);
-      return { ok: false, response: jsonResponse({ success: false, banned: true, error: "Too many attempts. Try again in a few minutes." }) };
+    if(data.success){
+      statusEl.textContent = 'Synced with team library · ' + new Date().toLocaleTimeString();
     }
-    cache.put(failKey, String(fails), 300);
-    return { ok: false, response: jsonResponse({ success: false, error: "Incorrect password." }) };
-  }
-
-  cache.remove(failKey);
-  return { ok: true };
-}
-
-function getAllVods() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
-  const data = sheet.getDataRange().getValues();
-  const rows = data.slice(1); // skip header row
-  return rows
-    .filter(r => r[0]) // skip blank rows
-    .map(r => ({
-      title: r[0],
-      date: normalizeDate(r[2]),
-      duration: normalizeDuration(r[3]),
-      download: r[4],
-      timestamps: safeParse(r[5])
-    }));
-}
-
-// Sheets silently converts date-looking text into real Date objects on
-// entry (paste or type), even in columns with no explicit date format.
-// This converts whatever comes back — a Date object or a plain string —
-// into a consistent "YYYY-MM-DD" string the page expects.
-function normalizeDate(value) {
-  if (Object.prototype.toString.call(value) === '[object Date]') {
-    return Utilities.formatDate(value, Session.getScriptTimeZone(), "yyyy-MM-dd");
-  }
-  return String(value || "").trim();
-}
-
-// Same issue for durations like "2:58:25" — Sheets treats them as a
-// time-of-day value. Converts that back into "H:MM:SS" text, or passes
-// through plain strings ("TBD", already-correct text) unchanged.
-function normalizeDuration(value) {
-  if (Object.prototype.toString.call(value) === '[object Date]') {
-    const h = value.getHours();
-    const m = value.getMinutes();
-    const s = value.getSeconds();
-    return h > 0
-      ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-      : `${m}:${String(s).padStart(2, '0')}`;
-  }
-  return String(value || "TBD").trim();
-}
-
-function safeParse(value) {
-  try {
-    return JSON.parse(value || "[]");
-  } catch (err) {
-    return [];
+    return data;
+  } catch(err){
+    console.error(err);
+    statusEl.textContent = 'Could not reach shared storage.';
+    return { success: false, networkError: true, error: 'Could not reach the backend — try again in a moment.' };
   }
 }
 
-function jsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+// Anonymous per-browser ID so Apps Script can rate-limit wrong-password attempts.
+// Not used for anything else, and doesn't touch VOD data itself.
+function getDeviceId(){
+  let id = localStorage.getItem('vod_device_id');
+  if(!id){
+    id = 'd_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem('vod_device_id', id);
+  }
+  return id;
 }
+
+// Sends the new entry + password to Apps Script, which checks the password
+// server-side and appends the row itself. Returns the full updated list.
+async function addVodRemote(entry, password){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    // no explicit Content-Type — keeps this a "simple request" so the
+    // Apps Script Web App doesn't choke on a CORS preflight
+    body: JSON.stringify({ action: 'add', password, entry, deviceId: getDeviceId() })
+  });
+  const data = await res.json();
+  return data;
+}
+
+// ---- Add VOD form ----
+function parseDriveFileId(link){
+  const patterns = [/\/file\/d\/([a-zA-Z0-9_-]+)/, /[?&]id=([a-zA-Z0-9_-]+)/];
+  for(const p of patterns){
+    const m = link.match(p);
+    if(m) return m[1];
+  }
+  return null;
+}
+
+function parseTimestampBlock(text){
+  const out = [];
+  text.split('\n').forEach(line=>{
+    // accepts "12:34-13:00 (label)" (end time discarded) or plain "12:34 (label)"
+    const m = line.trim().match(/^(?:\d+\.\s*)?(\d{1,2}(?::\d{2}){1,2})(?:\s*-\s*\d{1,2}(?::\d{2}){1,2})?\s*\((.*)\)\s*$/);
+    if(m) out.push([m[1], m[2].trim()]);
+  });
+  return out;
+}
+
+function timeToSeconds(t){
+  const parts = t.split(':').map(Number);
+  return parts.length===3 ? parts[0]*3600+parts[1]*60+parts[2] : parts[0]*60+parts[1];
+}
+
+function estimateDuration(timestamps){
+  if(!timestamps.length) return 'TBD';
+  const lastSec = timeToSeconds(timestamps[timestamps.length-1][0]) + 600;
+  const h = Math.floor(lastSec/3600), m = Math.floor((lastSec%3600)/60), s = lastSec%60;
+  return h ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}` : `${m}:${String(s).padStart(2,'0')}`;
+}
+
+const addVodOverlay = document.getElementById('addVodOverlay');
+document.getElementById('addVodBtn').addEventListener('click', ()=>{ addVodOverlay.style.display = 'flex'; });
+document.getElementById('cancelAddVod').addEventListener('click', ()=>{ addVodOverlay.style.display = 'none'; });
+addVodOverlay.addEventListener('click', (e)=>{ if(e.target === addVodOverlay) addVodOverlay.style.display = 'none'; });
+
+document.getElementById('submitAddVod').addEventListener('click', async ()=>{
+  const errorEl = document.getElementById('addVodError');
+  errorEl.style.display = 'none';
+
+  const password = document.getElementById('vodPassword').value;
+  const link = document.getElementById('vodDriveLink').value.trim();
+  const date = document.getElementById('vodDate').value;
+  const titleInput = document.getElementById('vodTitle').value.trim();
+  const tsText = document.getElementById('vodTimestamps').value;
+
+  if(!password || !link || !date){
+    errorEl.textContent = 'Password, Drive link, and stream date are required.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  const fileId = parseDriveFileId(link);
+  if(!fileId){
+    errorEl.textContent = "Couldn't find a file ID in that link — paste the full Drive share URL.";
+    errorEl.style.display = 'block';
+    return;
+  }
+  if(!storageConfigured()){
+    errorEl.textContent = 'Add your Apps Script /exec URL at the top of this file first.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const timestamps = parseTimestampBlock(tsText);
+  const entry = {
+    title: titleInput || `Stream ${Number(date.slice(5,7))}-${Number(date.slice(8,10))}`,
+    date,
+    duration: estimateDuration(timestamps),
+    download: `https://drive.google.com/uc?export=download&id=${fileId}`,
+    timestamps
+  };
+
+  const submitBtn = document.getElementById('submitAddVod');
+  submitBtn.textContent = 'Saving…';
+
+  let result;
+  try{
+    result = await Promise.race([
+      addVodRemote(entry, password),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+    ]);
+  } catch(err){
+    console.error(err);
+    submitBtn.textContent = 'Save VOD';
+    errorEl.textContent = err.message === 'timeout'
+      ? 'Timed out reaching the backend — check the Apps Script deployment (see console for details).'
+      : 'Could not reach the backend — check your connection and the Apps Script URL.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  submitBtn.textContent = 'Save VOD';
+
+  if(!result.success){
+    errorEl.textContent = result.error || 'Something went wrong saving this VOD.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  VODS = result.vods;
+  render();
+  addVodOverlay.style.display = 'none';
+  document.getElementById('vodPassword').value = '';
+  document.getElementById('vodDriveLink').value = '';
+  document.getElementById('vodDate').value = '';
+  document.getElementById('vodTitle').value = '';
+  document.getElementById('vodTimestamps').value = '';
+});
+
+// ---- Edit Timestamps ----
+const editTsOverlay = document.getElementById('editTsOverlay');
+let editingDate = null;
+
+function timestampsToText(timestamps){
+  return timestamps.map(([t,label]) => `${t} (${label})`).join('\n');
+}
+
+function openEditTimestamps(v){
+  editingDate = v.date;
+  document.getElementById('editTsTitle').textContent = `Edit timestamps — ${v.title}`;
+  document.getElementById('editTsTextarea').value = timestampsToText(v.timestamps);
+  document.getElementById('editTsPassword').value = (getSavedSession() || {}).pw || '';
+  document.getElementById('editTsError').style.display = 'none';
+  editTsOverlay.style.display = 'flex';
+}
+
+document.getElementById('cancelEditTs').addEventListener('click', ()=>{ editTsOverlay.style.display = 'none'; });
+editTsOverlay.addEventListener('click', (e)=>{ if(e.target === editTsOverlay) editTsOverlay.style.display = 'none'; });
+
+async function updateTimestampsRemote(date, timestamps, password){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'update_timestamps', password, date, timestamps, deviceId: getDeviceId() })
+  });
+  return res.json();
+}
+
+document.getElementById('submitEditTs').addEventListener('click', async ()=>{
+  const errorEl = document.getElementById('editTsError');
+  errorEl.style.display = 'none';
+
+  const password = document.getElementById('editTsPassword').value;
+  const timestamps = parseTimestampBlock(document.getElementById('editTsTextarea').value);
+
+  const submitBtn = document.getElementById('submitEditTs');
+  submitBtn.textContent = 'Saving…';
+
+  let result;
+  try{
+    result = await Promise.race([
+      updateTimestampsRemote(editingDate, timestamps, password),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000))
+    ]);
+  } catch(err){
+    console.error(err);
+    submitBtn.textContent = 'Save Timestamps';
+    errorEl.textContent = err.message === 'timeout'
+      ? 'Timed out reaching the backend.'
+      : 'Could not reach the backend — check your connection.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  submitBtn.textContent = 'Save Timestamps';
+
+  if(!result.success){
+    errorEl.textContent = result.error || 'Something went wrong saving these timestamps.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  VODS = result.vods;
+  render();
+  editTsOverlay.style.display = 'none';
+});
+
+// ---- Site-wide login gate ----
+const loginGate = document.getElementById('loginGate');
+const siteContent = document.getElementById('siteContent');
+const gateError = document.getElementById('gateError');
+const gatePasswordInput = document.getElementById('gatePassword');
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // stay logged in for 12 hours
+
+function saveSession(password){
+  localStorage.setItem('vod_site_session', JSON.stringify({ pw: password, ts: Date.now() }));
+}
+
+function getSavedSession(){
+  try{
+    const raw = localStorage.getItem('vod_site_session');
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed.pw || !parsed.ts) return null;
+    if(Date.now() - parsed.ts > SESSION_TTL_MS) return null; // expired — needs a fresh login
+    return parsed;
+  } catch(err){
+    return null;
+  }
+}
+
+async function unlockSite(password){
+  gateError.style.display = 'none';
+  const data = await loadFromCloud(password);
+  if(data.success){
+    saveSession(password); // (re)starts the 12-hour window on every successful check
+    loginGate.style.display = 'none';
+    siteContent.style.display = '';
+    render();
+    const addPwField = document.getElementById('vodPassword');
+    if(addPwField) addPwField.value = password;
+  } else {
+    gateError.textContent = data.error || 'Incorrect password.';
+    gateError.style.display = 'block';
+  }
+  return data;
+}
+
+document.getElementById('gateSubmit').addEventListener('click', ()=>{
+  unlockSite(gatePasswordInput.value);
+});
+gatePasswordInput.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') unlockSite(gatePasswordInput.value);
+});
+
+// Try a saved, still-valid session first so returning visitors skip the gate.
+// Only a genuine "wrong password" response clears the saved session — a
+// network hiccup or a temporary rate-limit ban leaves it in place, so a
+// refresh a moment later can still succeed without forcing a manual re-login.
+const savedSession = getSavedSession();
+if(savedSession){
+  unlockSite(savedSession.pw).then(data=>{
+    if(!data.success && !data.networkError && !data.banned){
+      localStorage.removeItem('vod_site_session'); // password was actually changed — needs real re-login
+    }
+  });
+}
+
+// ---- Theme toggle (dark / light / blue) ----
+const THEME_ORDER = ['dark', 'light', 'blue'];
+const THEME_META = {
+  dark: { icon: '🌙', label: 'Dark' },
+  light: { icon: '☀️', label: 'Light' },
+  blue: { icon: '🔵', label: 'Blue' },
+};
+
+function applyTheme(theme){
+  if(!THEME_ORDER.includes(theme)) theme = 'dark';
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('themeToggleIcon').textContent = THEME_META[theme].icon;
+  document.getElementById('themeToggleLabel').textContent = THEME_META[theme].label;
+}
+
+const savedTheme = localStorage.getItem('vod_theme') || 'dark';
+applyTheme(savedTheme);
+
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = THEME_ORDER[(THEME_ORDER.indexOf(current) + 1) % THEME_ORDER.length];
+  localStorage.setItem('vod_theme', next);
+  applyTheme(next);
+});
+</script>
+
+</body>
+</html>
