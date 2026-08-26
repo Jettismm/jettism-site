@@ -188,6 +188,14 @@
     display:flex; gap:8px; margin-top:auto; padding-top:6px;
   }
 
+  .claim-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .claim-badge{
+    font-size:11.5px; font-weight:600; color:var(--gold);
+    background: rgba(240,237,106,0.12);
+    border: 1px solid rgba(240,237,106,0.3);
+    padding:5px 10px; border-radius:8px;
+  }
+
   .btn{
     flex:1;
     display:flex; align-items:center; justify-content:center; gap:6px;
@@ -427,6 +435,14 @@ function render(){
       <div class="card-body">
         <p class="vod-title">${v.title}</p>
         <div class="vod-meta"><span>${fmtDate(v.date)}</span></div>
+        <div class="claim-row" data-date="${v.date}">
+          ${v.claimedBy
+            ? `<span class="claim-badge">Claimed by ${v.claimedBy}</span><div class="btn unclaim-btn" style="padding:6px 10px; font-size:11.5px;">Unclaim</div>`
+            : `<div class="btn claim-btn" style="padding:6px 10px; font-size:11.5px;">
+                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M20 6L9 17l-5-5"/></svg>
+                 Claim this VOD
+               </div>`}
+        </div>
         <div class="card-actions">
           <div class="btn ts-toggle">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
@@ -456,6 +472,12 @@ function render(){
     card.querySelector('.edit-ts').addEventListener('click', ()=>{
       openEditTimestamps(v);
     });
+
+    const claimBtn = card.querySelector('.claim-btn');
+    if(claimBtn) claimBtn.addEventListener('click', ()=> claimVod(v.date));
+
+    const unclaimBtn = card.querySelector('.unclaim-btn');
+    if(unclaimBtn) unclaimBtn.addEventListener('click', ()=> claimVod(v.date, ''));
 
     grid.appendChild(card);
   });
@@ -685,6 +707,44 @@ async function updateTimestampsRemote(date, timestamps, password){
     body: JSON.stringify({ action: 'update_timestamps', password, date, timestamps, deviceId: getDeviceId() })
   });
   return res.json();
+}
+
+// ---- Claim / unclaim a VOD ----
+async function setClaimRemote(date, claimedBy, password){
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'set_claim', password, date, claimedBy, deviceId: getDeviceId() })
+  });
+  return res.json();
+}
+
+async function claimVod(date, claimedByOverride){
+  const session = getSavedSession();
+  if(!session){
+    alert('Your session expired — refresh and log in again first.');
+    return;
+  }
+
+  let claimedBy = claimedByOverride;
+  if(claimedBy === undefined){
+    const saved = localStorage.getItem('vod_clipper_name');
+    claimedBy = saved || prompt('Your name (so others know it\'s taken):', '');
+    if(!claimedBy) return; // cancelled
+    localStorage.setItem('vod_clipper_name', claimedBy);
+  }
+
+  try{
+    const result = await setClaimRemote(date, claimedBy, session.pw);
+    if(!result.success){
+      alert(result.error || 'Could not update claim status.');
+      return;
+    }
+    VODS = result.vods;
+    render();
+  } catch(err){
+    console.error(err);
+    alert('Could not reach the backend — try again in a moment.');
+  }
 }
 
 document.getElementById('submitEditTs').addEventListener('click', async ()=>{
