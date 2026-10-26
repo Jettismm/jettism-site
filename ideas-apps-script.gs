@@ -85,59 +85,109 @@ function doPost(e) {
 
 /* ---------- thumbnail practice (jettism.com/thumbs) ---------- */
 
+const OWNER_EMAIL = 'jettism.contact@gmail.com';
+
+/**
+ * thumbs.json = { thumbs: [shared pool], users: { "<email>": profile } }
+ * profile    = { titles: {id: [{text, at}]}, saved: {id: at}, hidden: {id: {reason, at}},
+ *                seen: {id: at}, notepad: "", notepadAt: "" }
+ * Each signed-in person only ever sees and edits their own profile.
+ */
 function thumbsAction(req, who) {
-  const data = loadJson('thumbs.json', { thumbs: [], notepad: '' });
+  const data = loadJson('thumbs.json', { thumbs: [], users: {} });
   data.thumbs = data.thumbs || [];
-  if (typeof data.notepad !== 'string') data.notepad = '';
+  data.users = data.users || {};
+  let changed = migrateThumbs(data);
   importThumbsInbox(data);
+  if (data.__imported) { changed = true; delete data.__imported; }
+
+  const email = who.email;
+  if (!data.users[email]) { data.users[email] = blankProfile(); changed = true; }
+  const me = data.users[email];
   const now = new Date().toISOString();
   const t = req.id ? data.thumbs.find(x => x.id === req.id) : null;
   if (req.id && !t) return out({ ok: false, error: 'not_found' });
+  const id = req.id;
 
   switch (req.action) {
     case 'thumbs.list':
       break;
 
-    case 'thumbs.title': {           // save one of my titles; also add it to the notepad
+    case 'thumbs.title': {           // save one of my titles; also add it to my notepad
       const text = String(req.text || '').trim().slice(0, 300);
       if (!text) return out({ ok: false, error: 'bad_request' });
-      t.myTitles = t.myTitles || [];
-      t.myTitles.push({ text, at: now });
-      data.notepad = (data.notepad.replace(/\s+$/, '') + (data.notepad.trim() ? '\n' : '') + text);
+      (me.titles[id] = me.titles[id] || []).push({ text, at: now });
+      me.notepad = me.notepad.replace(/\s+$/, '') + (me.notepad.trim() ? '\n' : '') + text;
+      changed = true;
       break;
     }
 
     case 'thumbs.save':              // bookmark on/off
-      t.saved = !!req.saved;
-      t.savedAt = t.saved ? now : '';
+      if (req.saved) me.saved[id] = now; else delete me.saved[id];
+      changed = true;
       break;
 
     case 'thumbs.hide': {            // "don't recommend this" + why
       const reason = String(req.reason || '').trim().slice(0, 2000);
       if (!reason) return out({ ok: false, error: 'reason_required' });
-      t.hidden = true; t.hideReason = reason; t.hiddenAt = now;
+      me.hidden[id] = { reason, at: now };
+      changed = true;
       break;
     }
 
     case 'thumbs.unhide':
-      t.hidden = false;
+      delete me.hidden[id]; changed = true;
       break;
 
     case 'thumbs.seen':
-      t.seenAt = now;
+      me.seen[id] = now; changed = true;
       break;
 
     case 'thumbs.notepad':
-      data.notepad = String(req.text || '').slice(0, 200000);
-      data.notepadAt = now;
+      me.notepad = String(req.text || '').slice(0, 200000);
+      me.notepadAt = now; changed = true;
       break;
 
     default:
       return out({ ok: false, error: 'bad_request' });
   }
 
-  if (req.action !== 'thumbs.list' || data.__imported) { delete data.__imported; saveJson('thumbs.json', data); }
-  return out({ ok: true, email: who.email, thumbs: data.thumbs, notepad: data.notepad });
+  if (changed) saveJson('thumbs.json', data);
+
+  // Give the page the shared pool merged with ONLY this person's profile.
+  const view = data.thumbs.map(x => ({
+    id: x.id, title: x.title, creator: x.creator, niche: x.niche, views: x.views, url: x.url, addedAt: x.addedAt,
+    myTitles: me.titles[x.id] || [],
+    saved: !!me.saved[x.id], savedAt: me.saved[x.id] || '',
+    hidden: !!me.hidden[x.id], hideReason: me.hidden[x.id] ? me.hidden[x.id].reason : '',
+    seenAt: me.seen[x.id] || ''
+  }));
+  return out({ ok: true, email, thumbs: view, notepad: me.notepad });
+}
+
+function blankProfile() {
+  return { titles: {}, saved: {}, hidden: {}, seen: {}, notepad: '', notepadAt: '' };
+}
+
+/** One-time move of the old single-user fields into the owner's profile. */
+function migrateThumbs(data) {
+  let moved = false;
+  const owner = data.users[OWNER_EMAIL] || blankProfile();
+  data.thumbs.forEach(x => {
+    if (x.myTitles && x.myTitles.length) { owner.titles[x.id] = (owner.titles[x.id] || []).concat(x.myTitles); moved = true; }
+    if (x.saved) { owner.saved[x.id] = x.savedAt || x.addedAt || new Date().toISOString(); moved = true; }
+    if (x.hidden) { owner.hidden[x.id] = { reason: x.hideReason || '', at: x.hiddenAt || '' }; moved = true; }
+    if (x.seenAt) { owner.seen[x.id] = x.seenAt; moved = true; }
+    ['myTitles', 'saved', 'savedAt', 'hidden', 'hideReason', 'hiddenAt', 'seenAt'].forEach(k => {
+      if (k in x) { delete x[k]; moved = true; }
+    });
+  });
+  if (typeof data.notepad === 'string') {
+    if (data.notepad) owner.notepad = owner.notepad ? owner.notepad + '\n' + data.notepad : data.notepad;
+    delete data.notepad; delete data.notepadAt; moved = true;
+  }
+  if (moved || !data.users[OWNER_EMAIL]) data.users[OWNER_EMAIL] = owner;
+  return moved;
 }
 
 function importThumbsInbox(data) {
@@ -161,8 +211,7 @@ function importThumbsInbox(data) {
         id, addedAt: at,
         title: String(raw.title || ''), creator: String(raw.creator || ''),
         niche: String(raw.niche || ''), views: String(raw.views || ''),
-        url: raw.url || ('https://www.youtube.com/watch?v=' + id),
-        myTitles: [], saved: false, hidden: false
+        url: raw.url || ('https://www.youtube.com/watch?v=' + id)
       });
     });
     file.setTrashed(true);
