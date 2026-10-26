@@ -97,6 +97,9 @@
   .linkish{ background:none; border:0; padding:0; color:var(--text-lo); cursor:pointer; font-size:13px; text-decoration:underline; text-underline-offset:3px; }
   .linkish:hover{ color:var(--text-hi); }
 
+  .drafts{ margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 18px; }
+  .drafts .label{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-lo); }
+  .drafts .mine{ margin-top:8px; }
   .reveal{ margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;
     animation:fadeUp .3s ease both; }
   @keyframes fadeUp{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
@@ -332,8 +335,10 @@ function renderMain(){
         '<button class="icon-btn warn" data-act="hide" data-id="' + esc(t.id) + '" title="Don’t recommend this" aria-label="Don’t recommend this">' + ICON_HIDE + '</button>' +
       '</div></div>' +
     (revealed ? revealBlock(t, mine) :
-      '<form class="title-form" id="titleForm"><input id="titleInput" autocomplete="off" maxlength="300" placeholder="What would you title this thumbnail?"><button class="btn primary" type="submit">Save title</button></form>' +
-      '<div class="sub-actions"><button class="linkish" data-act="peek">Show real title</button><button class="linkish" data-act="skip">Skip</button><span style="color:var(--text-lo);margin-left:auto"><kbd>Enter</kbd> to save</span></div>');
+      (mine.length ? '<div class="drafts"><div class="label">Your ideas (' + mine.length + ')</div><ul class="mine">' + mine.map(m => '<li>' + esc(m.text) + '</li>').join('') + '</ul></div>' : '') +
+      '<form class="title-form" id="titleForm"><input id="titleInput" autocomplete="off" maxlength="300" placeholder="' + (mine.length ? 'Another title idea?' : 'What would you title this thumbnail?') + '"><button class="btn' + (mine.length ? '' : ' primary') + '" type="submit">Add title</button>' +
+      (mine.length ? '<button class="btn primary" type="button" data-act="peek">Reveal real title</button>' : '') + '</form>' +
+      '<div class="sub-actions">' + (mine.length ? '' : '<button class="linkish" data-act="peek">Show real title</button>') + '<button class="linkish" data-act="skip">Skip</button><span style="color:var(--text-lo);margin-left:auto"><kbd>Enter</kbd> adds a title · add as many as you want</span></div>');
   const inp = $('titleInput'); if (inp && view === 'main') setTimeout(() => inp.focus(), 20);
 }
 
@@ -380,7 +385,7 @@ async function submitTitle(){
   inp.disabled = true;
   try{
     await api('thumbs.title', { id: current.id, text });
-    current = thumbs.find(t => t.id === current.id); revealed = true; render();
+    current = thumbs.find(t => t.id === current.id) || current; render();
   }catch(e){ inp.disabled = false; if (e.message !== 'signin_required' && e.message !== 'not_allowed') toast('Couldn’t save. Try again.'); }
 }
 
