@@ -14,7 +14,7 @@
  *   Execute as: Me    Who has access: Anyone
  */
 
-const CLIENT_ID = 'PASTE_GOOGLE_CLIENT_ID_HERE';
+const CLIENT_ID = '527398886152-lraqu16t3ftnb9fqlgjf0givm9bs1s2v.apps.googleusercontent.com';
 const FOLDER_ID = '1LTfMhKHx4Osf4i4TLzDalJRJd45Ih9mC';
 const INBOX_ID  = '1RNMV62XDc8OZwZivcrTy0ifqTtWEY4z6';
 
