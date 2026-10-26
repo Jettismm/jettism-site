@@ -99,9 +99,11 @@ function thumbsAction(req, who) {
   data.thumbs = data.thumbs || [];
   data.users = data.users || {};
   let changed = migrateThumbs(data);
-  importThumbsInbox(data);
-  if (data.__imported) { changed = true; delete data.__imported; }
-  if (checkViews(data)) changed = true;
+  if (req.action === 'thumbs.list') {          // slow work only on page load, never on clicks
+    importThumbsInbox(data);
+    if (data.__imported) { changed = true; delete data.__imported; }
+    if (checkViews(data)) changed = true;
+  }
 
   const email = who.email;
   if (!data.users[email]) { data.users[email] = blankProfile(); changed = true; }
@@ -155,6 +157,7 @@ function thumbsAction(req, who) {
   }
 
   if (changed) saveJson('thumbs.json', data);
+  if (req.action !== 'thumbs.list') return out({ ok: true, email });
 
   // Give the page the shared pool merged with ONLY this person's profile.
   const view = data.thumbs.filter(x => x.checkedAt && !x.lowViews && !x.gone).map(x => ({
@@ -305,10 +308,16 @@ function verify(idToken) {
 }
 
 function allowedEmails() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('allowed_emails');
+  if (hit) return JSON.parse(hit);
   const f = newestFile(FOLDER_ID, 'allowed-emails.json');
   if (!f) return [];
-  try { return JSON.parse(f.getBlob().getDataAsString()).map(s => String(s).toLowerCase().trim()); }
+  let list = [];
+  try { list = JSON.parse(f.getBlob().getDataAsString()).map(s => String(s).toLowerCase().trim()); }
   catch (e) { return []; }
+  cache.put('allowed_emails', JSON.stringify(list), 300);   // re-read the list at most every 5 minutes
+  return list;
 }
 
 /* ---------- storage ---------- */

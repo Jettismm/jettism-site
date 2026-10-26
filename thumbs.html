@@ -294,20 +294,29 @@ const shuffleRank = {};
 const rank = id => (id in shuffleRank) ? shuffleRank[id] : (shuffleRank[id] = Math.random());
 const groupOf = t => (t.creator || '').toLowerCase() || (t.niche || '').toLowerCase();
 
+const isDonut = t => /donut/i.test(t.niche || '') || /donut/i.test(t.title || '');
+
+/* Mostly the wider SMP niche, with roughly 1 in 10 from Donut SMP. */
 function queue(){
   const todo = thumbs.filter(t => !t.hidden && !(t.myTitles && t.myTitles.length));
-  const unseen = todo.filter(t => !t.seenAt).sort((a, b) => rank(a.id) - rank(b.id));
-  const seen = todo.filter(t => t.seenAt).sort((a, b) => rank(a.id) - rank(b.id));
-  return spread(unseen).concat(spread(seen));
+  const order = list => list.sort((a, b) => rank(a.id) - rank(b.id));
+  const mix = list => {
+    const other = spread(order(list.filter(t => !isDonut(t))));
+    const donut = order(list.filter(isDonut));
+    const out = [];
+    other.forEach((t, i) => { out.push(t); if ((i + 1) % 9 === 0 && donut.length) out.push(donut.shift()); });
+    if (!other.length && donut.length) out.push(donut.shift());
+    return out.concat(donut);          // any extra Donut SMP thumbnails wait until the end
+  };
+  return mix(todo.filter(t => !t.seenAt)).concat(mix(todo.filter(t => t.seenAt)));
 }
 
-/* Reorder so the same creator / niche doesn't show up twice in a row when it can be avoided. */
+/* Reorder so the same creator doesn't show up twice in a row when it can be avoided. */
 function spread(list){
   const left = list.slice(), out = [];
   while (left.length){
     const prev = out.length ? groupOf(out[out.length - 1]) : null;
-    let i = left.findIndex(t => groupOf(t) !== prev && (t.niche || '') !== (out.length && out[out.length - 1].niche || '') );
-    if (i < 0) i = left.findIndex(t => groupOf(t) !== prev);
+    let i = left.findIndex(t => groupOf(t) !== prev);
     if (i < 0) i = 0;
     out.push(left.splice(i, 1)[0]);
   }
@@ -379,43 +388,58 @@ function render(){
 function setView(v){ view = v; render(); if (v === 'notes') setTimeout(() => $('notepad').focus(), 30); }
 
 /* ---------- actions ---------- */
-async function submitTitle(){
-  const inp = $('titleInput'); const text = (inp.value || '').trim();
-  if (!text || !current) return;
-  inp.disabled = true;
-  try{
-    await api('thumbs.title', { id: current.id, text });
-    current = thumbs.find(t => t.id === current.id) || current; render();
-  }catch(e){ inp.disabled = false; if (e.message !== 'signin_required' && e.message !== 'not_allowed') toast('Couldn’t save. Try again.'); }
+/* Every change shows up instantly; saving happens in the background, one request at a time, in order. */
+let outbox = Promise.resolve(), pending = 0;
+function send(action, extra, onFail){
+  pending++;
+  outbox = outbox.then(() => api(action, extra))
+    .catch(e => { if (e.message !== 'signin_required' && e.message !== 'not_allowed' && onFail) onFail(e); })
+    .finally(() => { pending--; });
+  return outbox;
 }
 
-async function toggleSave(id){
+function submitTitle(){
+  const inp = $('titleInput'); const text = (inp.value || '').trim();
+  if (!text || !current) return;
+  inp.value = '';
+  const t = current, entry = { text, at: new Date().toISOString() };
+  t.myTitles = (t.myTitles || []).concat([entry]);
+  if (!noteDirty){ notepad = notepad.replace(/\s+$/, '') + (notepad.trim() ? '\n' : '') + text; }
+  render();
+  send('thumbs.title', { id: t.id, text }, () => {
+    t.myTitles = t.myTitles.filter(m => m !== entry); render();
+    toast('Couldn’t save “' + text + '”. Add it again.');
+  });
+}
+
+function toggleSave(id){
   const t = thumbs.find(x => x.id === id); if (!t) return;
-  const saved = !t.saved; t.saved = saved; render();
-  try{ await api('thumbs.save', { id, saved }); if (current) current = thumbs.find(x => x.id === current.id) || current; render(); toast(saved ? 'Saved' : 'Removed from saved'); }
-  catch(e){ t.saved = !saved; render(); }
+  const saved = !t.saved; t.saved = saved; t.savedAt = saved ? new Date().toISOString() : '';
+  render(); toast(saved ? 'Saved' : 'Removed from saved');
+  send('thumbs.save', { id, saved }, () => { t.saved = !saved; render(); toast('Couldn’t save that. Try again.'); });
 }
 
 let hideId = null;
 function openHide(id){ hideId = id; $('mText').value = ''; $('mErr').textContent = ''; $('mSubmit').disabled = false; $('modalBg').classList.remove('hidden'); setTimeout(() => $('mText').focus(), 30); }
 function closeHide(){ $('modalBg').classList.add('hidden'); hideId = null; }
-async function submitHide(){
+function submitHide(){
   const reason = $('mText').value.trim();
   if (!reason){ $('mErr').textContent = 'Add a reason so the agent can learn from it.'; return; }
-  const id = hideId; $('mSubmit').disabled = true;
-  try{
-    await api('thumbs.hide', { id, reason });
-    closeHide();
-    if (current && current.id === id) pickNext(); render();
-    toast('Hidden. The agent will skip things like this.', async () => { await api('thumbs.unhide', { id }); pickNext(); render(); });
-  }catch(e){ $('mSubmit').disabled = false; if (e.message !== 'signin_required' && e.message !== 'not_allowed') $('mErr').textContent = 'Couldn’t save. Try again.'; }
+  const id = hideId, t = thumbs.find(x => x.id === id); if (!t) return closeHide();
+  t.hidden = true; t.hideReason = reason;
+  closeHide();
+  if (current && current.id === id) pickNext(); render();
+  send('thumbs.hide', { id, reason }, () => { t.hidden = false; render(); toast('Couldn’t hide that. Try again.'); });
+  toast('Hidden. The agent will skip things like this.', () => {
+    t.hidden = false; pickNext(); render(); send('thumbs.unhide', { id });
+  });
 }
 
 function skip(){
   if (!current) return;
   const id = current.id; current.seenAt = new Date().toISOString();
   pickNext(id); render();
-  api('thumbs.seen', { id }).catch(() => {});
+  send('thumbs.seen', { id });
 }
 
 /* notepad autosave */
@@ -445,7 +469,7 @@ document.addEventListener('click', e => {
   switch (b.dataset.act){
     case 'save': toggleSave(id); break;
     case 'hide': openHide(id); break;
-    case 'peek': revealed = true; render(); if (current) api('thumbs.seen', { id: current.id }).catch(() => {}); break;
+    case 'peek': revealed = true; render(); if (current) send('thumbs.seen', { id: current.id }); break;
     case 'skip': skip(); break;
     case 'next': pickNext(current && current.id); render(); break;
   }
@@ -458,7 +482,7 @@ $('mCancel').onclick = closeHide;
 $('mSubmit').onclick = submitHide;
 $('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) closeHide(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHide(); });
-window.addEventListener('beforeunload', e => { if (noteDirty){ e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (noteDirty || pending){ e.preventDefault(); e.returnValue = ''; } });
 
 (function boot(){
   const t = readToken();
