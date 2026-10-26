@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Jettism — Idea Board</title>
+<link rel="icon" type="image/png" href="jettismicontransparent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg-0:#313338;
+    --bg-1:#2b2d31;
+    --col:#2b2d31;
+    --card:#383a40;
+    --card-hover:#3d3f45;
+    --line: rgba(255,255,255,0.07);
+    --line-hi: rgba(255,255,255,0.14);
+    --blurple:#5865f2;
+    --gold:#f0ed6a;
+    --green:#3ba55d;
+    --red:#ed4245;
+    --text-hi:#f2f3f5;
+    --text-mid:#c4c9ce;
+    --text-lo:#949ba4;
+    --radius:12px;
+    --rail:64px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; min-height:100vh;
+    background:var(--bg-0); color:var(--text-hi);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(ellipse 900px 500px at 10% -10%, rgba(240,237,106,0.05), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(88,101,242,0.09), transparent 55%),
+      linear-gradient(180deg,var(--bg-0) 0%,var(--bg-1) 100%);
+  }
+  button{ font-family:inherit; }
+  .hidden{ display:none !important; }
+
+  /* ---------- sign-in wall ---------- */
+  #lock{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .lock-card{
+    width:100%; max-width:380px; text-align:center;
+    background:var(--bg-1); border:1px solid var(--line); border-radius:16px;
+    padding:36px 28px 30px;
+  }
+  .lock-card img{ height:46px; margin-bottom:14px; }
+  .lock-card h1{ font-size:22px; margin:0 0 6px; letter-spacing:-0.01em; }
+  .lock-card p{ color:var(--text-lo); font-size:14px; margin:0 0 24px; line-height:1.5; }
+  #gbtn{ display:flex; justify-content:center; min-height:44px; }
+  .lock-err{ color:#ff9a9c; font-size:13px; margin-top:16px; min-height:18px; line-height:1.45; }
+
+  /* ---------- app shell ---------- */
+  header{
+    padding:26px calc(var(--rail) + 28px) 18px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
+  }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand img{ height:42px; }
+  .eyebrow{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-lo); margin:0 0 3px; }
+  header h1{ font-size:24px; margin:0; font-weight:800; letter-spacing:-0.02em; }
+  .who{ display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-lo); }
+  .ghost-btn{
+    background:transparent; border:1px solid var(--line-hi); color:var(--text-mid);
+    padding:7px 12px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;
+  }
+  .ghost-btn:hover{ color:var(--text-hi); border-color:var(--text-lo); }
+
+  main{ padding:24px calc(var(--rail) + 28px) 60px 28px; }
+
+  /* right rail */
+  .rail{
+    position:fixed; top:0; right:0; bottom:0; width:var(--rail);
+    background:#1e1f22; border-left:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; gap:10px; padding-top:22px; z-index:20;
+  }
+  .rail button{
+    position:relative;
+    width:44px; height:44px; border-radius:12px; border:0; cursor:pointer;
+    background:transparent; color:var(--text-lo);
+    display:flex; align-items:center; justify-content:center;
+    transition:background .15s, color .15s;
+  }
+  .rail button:hover{ background:#2b2d31; color:var(--text-hi); }
+  .rail button.active{ background:#383a40; color:var(--gold); }
+  .rail button.active::before{
+    content:""; position:absolute; left:-10px; top:10px; bottom:10px; width:3px;
+    border-radius:3px; background:var(--gold);
+  }
+  .rail svg{ width:22px; height:22px; }
+  .rail .badge{
+    position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px;
+    background:var(--red); color:#fff; border-radius:8px; font-size:10px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* board */
+  .board{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; align-items:start; }
+  .column{
+    background:var(--col); border:1px solid var(--line); border-radius:14px;
+    padding:14px; min-height:200px;
+  }
+  .col-head{ display:flex; align-items:center; gap:8px; padding:2px 4px 12px; }
+  .col-head .dot{ width:8px; height:8px; border-radius:50%; }
+  .col-head h2{ font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin:0; }
+  .col-head .count{ margin-left:auto; font-size:12px; color:var(--text-lo); font-weight:600;
+    background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:10px; }
+  .col-list{ display:flex; flex-direction:column; gap:10px; }
+  .empty{ color:var(--text-lo); font-size:13px; text-align:center; padding:28px 10px; line-height:1.5; }
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 14px 12px; display:flex; flex-direction:column; gap:9px;
+    animation:fadeUp .35s cubic-bezier(.2,.7,.3,1) both;
+  }
+  .card:hover{ border-color:var(--line-hi); }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(8px);} to{ opacity:1; transform:none;} }
+  .card-top{ display:flex; align-items:center; gap:8px; }
+  .tag{
+    font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    padding:3px 7px; border-radius:6px; border:1px solid;
+  }
+  .tag.trap{ color:#ff9a9c; border-color:rgba(237,66,69,.35); background:rgba(237,66,69,.1); }
+  .tag.ragebait{ color:var(--gold); border-color:rgba(240,237,106,.3); background:rgba(240,237,106,.08); }
+  .card-date{ margin-left:auto; font-size:11.5px; color:var(--text-lo); }
+  .title{ font-size:15px; font-weight:700; line-height:1.35; margin:0; }
+  .alt{ font-size:12px; color:var(--text-lo); margin:-4px 0 0; }
+  .hook{
+    font-size:13px; color:var(--text-mid); line-height:1.5; margin:0;
+    border-left:2px solid var(--blurple); padding-left:10px;
+  }
+  details{ font-size:13px; color:var(--text-mid); }
+  summary{ cursor:pointer; color:var(--text-lo); font-weight:600; font-size:12.5px; list-style:none; user-select:none; }
+  summary::-webkit-details-marker{ display:none; }
+  summary::before{ content:"▸ "; }
+  details[open] summary::before{ content:"▾ "; }
+  .detail{ margin-top:8px; display:flex; flex-direction:column; gap:8px; line-height:1.5; }
+  .detail b{ display:block; color:var(--text-hi); font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; margin-bottom:2px; }
+  .detail ol{ margin:0; padding-left:18px; }
+  .detail p{ margin:0; }
+
+  .actions{ display:flex; gap:8px; margin-top:2px; }
+  .btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:8px 10px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer;
+    border:1px solid var(--line-hi); background:rgba(255,255,255,0.02); color:var(--text-hi);
+    transition:all .15s;
+  }
+  .btn svg{ width:15px; height:15px; }
+  .btn.good:hover{ border-color:var(--green); background:rgba(59,165,93,.15); color:#7ee2a0; }
+  .btn.bad:hover{ border-color:var(--red); background:rgba(237,66,69,.13); color:#ff9a9c; }
+  .btn.primary{ background:var(--blurple); border-color:var(--blurple); }
+  .btn.primary:hover{ filter:brightness(1.1); }
+  .btn.finish{ border-color:rgba(240,237,106,.4); color:var(--gold); }
+  .btn.finish:hover{ background:rgba(240,237,106,.1); }
+  .btn:disabled{ opacity:.5; cursor:default; }
+
+  .note{
+    font-size:12.5px; line-height:1.5; color:var(--text-mid);
+    background:rgba(0,0,0,0.18); border-radius:8px; padding:8px 10px;
+  }
+  .note b{ color:var(--text-lo); font-weight:600; font-size:11px; letter-spacing:.04em; text-transform:uppercase; display:block; margin-bottom:2px; }
+
+  .fields{ display:flex; flex-direction:column; gap:8px; }
+  .field label{ display:block; font-size:11px; font-weight:600; color:var(--text-lo); letter-spacing:.04em; text-transform:uppercase; margin-bottom:4px; }
+  .field input[type=text], .field textarea{
+    width:100%; background:#1e1f22; border:1px solid var(--line); border-radius:8px;
+    color:var(--text-hi); font-size:13px; padding:8px 10px; font-family:inherit; resize:vertical;
+  }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--blurple); }
+  .toggles{ display:flex; gap:8px; }
+  .toggle{
+    flex:1; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
+    font-size:12.5px; font-weight:600; color:var(--text-mid);
+    background:#1e1f22; border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+  }
+  .toggle input{ display:none; }
+  .toggle .box{
+    width:16px; height:16px; border-radius:5px; border:1.5px solid var(--text-lo);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .toggle .box svg{ width:12px; height:12px; opacity:0; color:#fff; }
+  .toggle input:checked + .box{ background:var(--green); border-color:var(--green); }
+  .toggle input:checked + .box svg{ opacity:1; }
+  .toggle:has(input:checked){ color:var(--text-hi); border-color:rgba(59,165,93,.4); }
+  .saved{ font-size:11px; color:var(--text-lo); text-align:right; min-height:14px; }
+
+  .link-back{ background:none; border:0; color:var(--text-lo); font-size:12px; cursor:pointer; padding:0; text-decoration:underline; }
+  .link-back:hover{ color:var(--text-hi); }
+
+  /* trash view */
+  .trash-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:16px; }
+  .trash-head h2{ margin:0; font-size:18px; }
+  .trash-head p{ margin:0; color:var(--text-lo); font-size:13px; }
+  .trash-grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+
+  /* modal */
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .modal{
+    width:100%; max-width:460px; background:var(--bg-0); border:1px solid var(--line-hi);
+    border-radius:14px; padding:22px;
+  }
+  .modal h3{ margin:0 0 4px; font-size:17px; }
+  .modal .sub{ margin:0 0 14px; color:var(--text-lo); font-size:13px; line-height:1.45; }
+  .modal textarea{
+    width:100%; min-height:110px; background:#1e1f22; border:1px solid var(--line-hi); border-radius:8px;
+    color:var(--text-hi); font-size:14px; padding:10px 12px; font-family:inherit; resize:vertical;
+  }
+  .modal textarea:focus{ outline:none; border-color:var(--blurple); }
+  .modal .actions{ margin-top:14px; }
+  .modal .err{ color:#ff9a9c; font-size:12.5px; min-height:16px; margin-top:6px; }
+
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+    background:#111214; border:1px solid var(--line-hi); color:var(--text-hi);
+    padding:10px 16px; border-radius:10px; font-size:13px; z-index:60;
+  }
+  .loading{ color:var(--text-lo); font-size:14px; padding:40px 0; text-align:center; }
+
+  @media (max-width:1100px){ .trash-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:900px){
+    .board{ grid-template-columns:1fr; }
+  }
+  @media (max-width:640px){
+    :root{ --rail:56px; }
+    header{ padding:18px calc(var(--rail) + 16px) 14px 16px; }
+    main{ padding:16px calc(var(--rail) + 16px) 48px 16px; }
+    .trash-grid{ grid-template-columns:1fr; }
+    .who span{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sign-in wall -->
+<section id="lock">
+  <div class="lock-card">
+    <img src="jettismicontransparent.png" alt="Jettism">
+    <h1>Idea Board</h1>
+    <p>Private to the Jettism team. Sign in with an approved Google account.</p>
+    <div id="gbtn"></div>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</section>
+
+<!-- App -->
+<div id="app" class="hidden">
+  <header>
+    <div class="brand">
+      <img src="jettismicontransparent.png" alt="">
+      <div>
+        <p class="eyebrow">Jettism · Main channel</p>
+        <h1 id="viewTitle">Idea Board</h1>
+      </div>
+    </div>
+    <div class="who"><span id="whoEmail"></span><button class="ghost-btn" id="signOut">Sign out</button></div>
+  </header>
+
+  <nav class="rail" aria-label="Views">
+    <button id="tabIdeas" class="active" title="Idea board" aria-label="Idea board">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+      <span class="badge hidden" id="newBadge"></span>
+    </button>
+    <button id="tabTrash" title="Rejected ideas" aria-label="Rejected ideas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+    </button>
+  </nav>
+
+  <main>
+    <div id="loading" class="loading">Loading ideas…</div>
+
+    <div id="boardView" class="board hidden">
+      <section class="column">
+        <div class="col-head"><span class="dot" style="background:var(--gold)"></span><h2>New Ideas</h2><span class="count" id="cNew">0</span></div>
+        <div class="col-list" id="listNew"></div>
+      </section>
+      <section class="column">
+        <div class="col-head"><span class="dot" style="background:var(--blurple)"></span><h2>In Progress</h2><span class="count" id="cProg">0</span></div>
+        <div class="col-list" id="listProg"></div>
+      </section>
+      <section class="column">
+        <div class="col-head"><span class="dot" style="background:var(--green)"></span><h2>Finished</h2><span class="count" id="cDone">0</span></div>
+        <div class="col-list" id="listDone"></div>
+      </section>
+    </div>
+
+    <div id="trashView" class="hidden">
+      <div class="trash-head"><h2>Rejected ideas</h2><p id="trashCount"></p></div>
+      <div class="trash-grid" id="listTrash"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Feedback modal -->
+<div class="modal-bg hidden" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="mTitle"></h3>
+    <p class="sub" id="mSub"></p>
+    <textarea id="mText"></textarea>
+    <div class="err" id="mErr"></div>
+    <div class="actions">
+      <button class="btn" id="mCancel">Cancel</button>
+      <button class="btn primary" id="mSubmit">Submit</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+/* ---------- config ---------- */
+const GOOGLE_CLIENT_ID = 'PASTE_GOOGLE_CLIENT_ID_HERE';
+const API_URL = 'PASTE_APPS_SCRIPT_URL_HERE';
+
+const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
+const ICON_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>';
+
+let idToken = null;
+let ideas = [];
+let view = 'ideas';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- auth ---------- */
+function tokenExp(t){
+  try{ return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000; }
+  catch(e){ return 0; }
+}
+function storeToken(t){ try{ sessionStorage.setItem('jt_idtoken', t); }catch(e){} }
+function readToken(){ try{ return sessionStorage.getItem('jt_idtoken'); }catch(e){ return null; } }
+function clearToken(){ try{ sessionStorage.removeItem('jt_idtoken'); }catch(e){} }
+
+function showLock(msg){
+  $('app').classList.add('hidden');
+  $('lock').classList.remove('hidden');
+  $('lockErr').textContent = msg || '';
+}
+
+function initGoogle(){
+  if (!window.google || !google.accounts){ return setTimeout(initGoogle, 150); }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: r => { idToken = r.credential; storeToken(idToken); start(); },
+    auto_select: true,
+    ux_mode: 'popup'
+  });
+  google.accounts.id.renderButton($('gbtn'), { theme:'filled_black', size:'large', shape:'pill', text:'signin_with', width:260 });
+}
+
+function signOut(){
+  clearToken(); idToken = null; ideas = [];
+  if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+  showLock('');
+}
+
+/* ---------- api ---------- */
+async function api(action, extra){
+  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ idToken, action }, extra || {})) });
+  const data = await res.json();
+  if (!data.ok){
+    if (data.error === 'signin_required'){ clearToken(); showLock('Your session expired. Sign in again.'); }
+    else if (data.error === 'not_allowed'){ clearToken(); showLock((data.email || 'That account') + ' isn’t allowed on this board.'); }
+    throw new Error(data.error || 'request_failed');
+  }
+  return data;
+}
+
+async function start(){
+  $('lock').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('loading').classList.remove('hidden');
+  $('boardView').classList.add('hidden');
+  $('trashView').classList.add('hidden');
+  try{
+    const data = await api('list');
+    $('whoEmail').textContent = data.email;
+    ideas = data.ideas;
+    render();
+  }catch(e){
+    if (e.message !== 'signin_required' && e.message !== 'not_allowed') toast('Couldn’t load ideas. Refresh to try again.');
+  }finally{
+    $('loading').classList.add('hidden');
+  }
+}
+
+/* ---------- rendering ---------- */
+function fmtDate(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month:'short', day:'numeric' }) + ', ' +
+         d.toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+}
+
+function details(i){
+  const rows = [];
+  if (i.how && i.how.length) rows.push('<div><b>How it works</b><ol>' + i.how.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol></div>');
+  if (i.defenses) rows.push('<div><b>Beating DrDonut’s defenses</b><p>' + esc(i.defenses) + '</p></div>');
+  if (i.setupTime) rows.push('<div><b>Setup time</b><p>' + esc(i.setupTime) + '</p></div>');
+  if (i.ifFails) rows.push('<div><b>If it fails</b><p>' + esc(i.ifFails) + '</p></div>');
+  if (i.risk) rows.push('<div><b>Biggest risk</b><p>' + esc(i.risk) + '</p></div>');
+  if (!rows.length) return '';
+  return '<details><summary>Details</summary><div class="detail">' + rows.join('') + '</div></details>';
+}
+
+function head(i, dateIso){
+  const t = (i.type || '').toLowerCase();
+  const tag = (t === 'trap' || t === 'ragebait') ? '<span class="tag ' + t + '">' + (t === 'trap' ? 'Trap' : 'Ragebait') + '</span>' : '';
+  return '<div class="card-top">' + tag + '<span class="card-date">' + esc(fmtDate(dateIso)) + '</span></div>' +
+         '<h3 class="title">' + esc(i.title) + '</h3>' +
+         (i.altTitle ? '<p class="alt">Alt: ' + esc(i.altTitle) + '</p>' : '');
+}
+
+function newCard(i){
+  return '<article class="card">' + head(i, i.createdAt) +
+    (i.hook ? '<p class="hook">' + esc(i.hook) + '</p>' : '') + details(i) +
+    '<div class="actions">' +
+      '<button class="btn good" data-act="good" data-id="' + esc(i.id) + '">' + ICON_CHECK + 'Good idea</button>' +
+      '<button class="btn bad" data-act="reject" data-id="' + esc(i.id) + '">' + ICON_X + 'Reject</button>' +
+    '</div></article>';
+}
+
+function progCard(i){
+  const p = i.progress || {};
+  const id = esc(i.id);
+  return '<article class="card" data-card="' + id + '">' + head(i, i.feedback && i.feedback.at) +
+    (i.feedback && i.feedback.note ? '<div class="note"><b>How to make it better</b>' + esc(i.feedback.note) + '</div>' : '') +
+    details(i) +
+    '<div class="fields">' +
+      '<div class="field"><label>Editor</label><input type="text" data-field="editor" data-id="' + id + '" value="' + esc(p.editor) + '" placeholder="Who’s editing?"></div>' +
+      '<div class="toggles">' +
+        '<label class="toggle"><input type="checkbox" data-field="recorded" data-id="' + id + '"' + (p.recorded ? ' checked' : '') + '><span class="box">' + ICON_CHECK + '</span>Recorded</label>' +
+        '<label class="toggle"><input type="checkbox" data-field="sentToEditor" data-id="' + id + '"' + (p.sentToEditor ? ' checked' : '') + '><span class="box">' + ICON_CHECK + '</span>Sent to editor</label>' +
+      '</div>' +
+      '<div class="field"><label>Notes</label><textarea rows="2" data-field="notes" data-id="' + id + '" placeholder="Anything to remember">' + esc(p.notes) + '</textarea></div>' +
+      '<div class="saved" data-saved="' + id + '"></div>' +
+    '</div>' +
+    '<div class="actions"><button class="btn finish" data-act="finish" data-id="' + id + '">' + ICON_FLAG + 'Finish</button></div>' +
+    '<button class="link-back" data-act="toNew" data-id="' + id + '">Move back to New Ideas</button>' +
+    '</article>';
+}
+
+function doneCard(i){
+  const p = i.progress || {};
+  const id = esc(i.id);
+  const meta = [p.editor ? 'Editor: ' + esc(p.editor) : ''].filter(Boolean).join('');
+  return '<article class="card" data-card="' + id + '">' + head(i, i.finishedAt) +
+    (meta ? '<div class="alt" style="margin:0">' + meta + '</div>' : '') +
+    details(i) +
+    '<div class="fields">' +
+      '<div class="field"><label>Video link</label><input type="text" data-field="link" data-id="' + id + '" value="' + esc(p.link) + '" placeholder="Paste the Short’s URL"></div>' +
+      '<div class="field"><label>Views</label><input type="text" data-field="views" data-id="' + id + '" value="' + esc(p.views) + '" placeholder="e.g. 12M"></div>' +
+      '<div class="saved" data-saved="' + id + '"></div>' +
+    '</div>' +
+    '<button class="link-back" data-act="toProg" data-id="' + id + '">Move back to In Progress</button>' +
+    '</article>';
+}
+
+function trashCard(i){
+  const id = esc(i.id);
+  return '<article class="card">' + head(i, i.feedback && i.feedback.at) +
+    (i.feedback && i.feedback.note ? '<div class="note"><b>Why it was rejected</b>' + esc(i.feedback.note) + '</div>' : '') +
+    (i.hook ? '<p class="hook">' + esc(i.hook) + '</p>' : '') + details(i) +
+    '<button class="link-back" data-act="toNew" data-id="' + id + '">Restore to New Ideas</button>' +
+    '</article>';
+}
+
+function byDate(key){ return (a, b) => String(b[key] || b.createdAt || '').localeCompare(String(a[key] || a.createdAt || '')); }
+
+function render(){
+  const n = ideas.filter(i => i.status === 'new').sort(byDate('createdAt'));
+  const p = ideas.filter(i => i.status === 'progress').sort(byDate('updatedAt'));
+  const d = ideas.filter(i => i.status === 'finished').sort(byDate('finishedAt'));
+  const r = ideas.filter(i => i.status === 'rejected').sort(byDate('updatedAt'));
+
+  $('cNew').textContent = n.length; $('cProg').textContent = p.length; $('cDone').textContent = d.length;
+  $('listNew').innerHTML = n.length ? n.map(newCard).join('') : '<div class="empty">No new ideas right now.<br>A fresh batch shows up every 6 hours.</div>';
+  $('listProg').innerHTML = p.length ? p.map(progCard).join('') : '<div class="empty">Mark an idea as good to start working on it.</div>';
+  $('listDone').innerHTML = d.length ? d.map(doneCard).join('') : '<div class="empty">Finished Shorts land here.</div>';
+  $('listTrash').innerHTML = r.length ? r.map(trashCard).join('') : '<div class="empty">Nothing rejected yet.</div>';
+  $('trashCount').textContent = r.length + (r.length === 1 ? ' idea' : ' ideas');
+
+  const badge = $('newBadge');
+  badge.textContent = n.length; badge.classList.toggle('hidden', !n.length || view === 'ideas');
+
+  $('boardView').classList.toggle('hidden', view !== 'ideas');
+  $('trashView').classList.toggle('hidden', view !== 'trash');
+  $('viewTitle').textContent = view === 'ideas' ? 'Idea Board' : 'Rejected Ideas';
+}
+
+function setView(v){
+  view = v;
+  $('tabIdeas').classList.toggle('active', v === 'ideas');
+  $('tabTrash').classList.toggle('active', v === 'trash');
+  render();
+}
+
+/* ---------- actions ---------- */
+let modalCtx = null;
+function openModal(kind, id){
+  const idea = ideas.find(i => i.id === id);
+  modalCtx = { kind, id };
+  $('mTitle').textContent = kind === 'good' ? 'Good idea' : 'Reject idea';
+  $('mSub').textContent = kind === 'good'
+    ? 'How can it be better? This moves “' + idea.title + '” to In Progress and teaches the idea generator.'
+    : 'Why is it a bad idea? Be specific so future ideas avoid the same problem.';
+  $('mText').value = '';
+  $('mText').placeholder = kind === 'good' ? 'e.g. launch the minecarts 50-100 blocks away so it’s chaotic' : 'e.g. he’d just fly away with his elytra';
+  $('mErr').textContent = '';
+  $('mSubmit').disabled = false;
+  $('modalBg').classList.remove('hidden');
+  setTimeout(() => $('mText').focus(), 30);
+}
+function closeModal(){ $('modalBg').classList.add('hidden'); modalCtx = null; }
+
+async function submitModal(){
+  if (!modalCtx) return;
+  const note = $('mText').value.trim();
+  if (modalCtx.kind === 'reject' && !note){ $('mErr').textContent = 'Add a reason so the generator can learn from it.'; return; }
+  $('mSubmit').disabled = true;
+  try{
+    const data = await api('feedback', { id: modalCtx.id, verdict: modalCtx.kind === 'good' ? 'good' : 'reject', note });
+    ideas = data.ideas; closeModal(); render();
+    toast('Saved');
+  }catch(e){
+    $('mSubmit').disabled = false;
+    if (e.message !== 'signin_required' && e.message !== 'not_allowed') $('mErr').textContent = 'Couldn’t save. Try again.';
+  }
+}
+
+async function simple(action, id, extra){
+  try{
+    const data = await api(action, Object.assign({ id }, extra || {}));
+    ideas = data.ideas; render();
+  }catch(e){
+    if (e.message !== 'signin_required' && e.message !== 'not_allowed') toast('Couldn’t save. Try again.');
+  }
+}
+
+const timers = {};
+function queueField(el){
+  const id = el.dataset.id, field = el.dataset.field;
+  const value = el.type === 'checkbox' ? el.checked : el.value;
+  const idea = ideas.find(i => i.id === id);
+  if (idea){ idea.progress = idea.progress || {}; idea.progress[field] = value; }
+  const savedEl = document.querySelector('[data-saved="' + CSS.escape(id) + '"]');
+  if (savedEl) savedEl.textContent = 'Saving…';
+  clearTimeout(timers[id + field]);
+  timers[id + field] = setTimeout(async () => {
+    try{
+      await api('progress', { id, fields: { [field]: value } });
+      const s = document.querySelector('[data-saved="' + CSS.escape(id) + '"]');
+      if (s) s.textContent = 'Saved';
+    }catch(e){
+      const s = document.querySelector('[data-saved="' + CSS.escape(id) + '"]');
+      if (s) s.textContent = 'Not saved';
+    }
+  }, el.type === 'checkbox' ? 0 : 700);
+}
+
+let toastTimer;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.remove('hidden');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 2200);
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const id = b.dataset.id;
+  switch (b.dataset.act){
+    case 'good': openModal('good', id); break;
+    case 'reject': openModal('reject', id); break;
+    case 'finish': b.disabled = true; simple('finish', id); break;
+    case 'toNew': simple('move', id, { to:'new' }); break;
+    case 'toProg': simple('move', id, { to:'progress' }); break;
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.matches('input[type=text][data-field], textarea[data-field]')) queueField(e.target);
+});
+document.addEventListener('change', e => {
+  if (e.target.matches('input[type=checkbox][data-field]')) queueField(e.target);
+});
+
+$('tabIdeas').onclick = () => setView('ideas');
+$('tabTrash').onclick = () => setView('trash');
+$('signOut').onclick = signOut;
+$('mCancel').onclick = closeModal;
+$('mSubmit').onclick = submitModal;
+$('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !$('modalBg').classList.contains('hidden')) submitModal();
+});
+
+/* ---------- boot ---------- */
+(function boot(){
+  const t = readToken();
+  if (t && tokenExp(t) > Date.now() + 60000){ idToken = t; start(); }
+  initGoogle();
+})();
+</script>
+</body>
+</html>
