@@ -354,11 +354,15 @@ function showLock(msg){
 }
 
 function initGoogle(){
+  if (GOOGLE_CLIENT_ID.indexOf('PASTE_') === 0 || API_URL.indexOf('PASTE_') === 0){
+    $('lockErr').textContent = 'Google sign-in isn’t connected yet. Almost done setting it up.';
+    return;
+  }
   if (!window.google || !google.accounts){ return setTimeout(initGoogle, 150); }
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: r => { idToken = r.credential; storeToken(idToken); start(); },
-    auto_select: true,
+    auto_select: false,
     ux_mode: 'popup'
   });
   google.accounts.id.renderButton($('gbtn'), { theme:'filled_black', size:'large', shape:'pill', text:'signin_with', width:260 });
@@ -376,7 +380,7 @@ async function api(action, extra){
   const data = await res.json();
   if (!data.ok){
     if (data.error === 'signin_required'){ clearToken(); showLock('Your session expired. Sign in again.'); }
-    else if (data.error === 'not_allowed'){ clearToken(); showLock((data.email || 'That account') + ' isn’t allowed on this board.'); }
+    else if (data.error === 'not_allowed'){ clearToken(); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock((data.email || 'That account') + ' isn’t allowed on this board. Click the button again and pick jettism.contact@gmail.com.'); }
     throw new Error(data.error || 'request_failed');
   }
   return data;
