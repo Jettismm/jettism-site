@@ -286,9 +286,29 @@ async function start(){
 }
 
 /* ---------- queue ---------- */
+/* Random order that stays put while the page is open, so the next card doesn't jump around. */
+const shuffleRank = {};
+const rank = id => (id in shuffleRank) ? shuffleRank[id] : (shuffleRank[id] = Math.random());
+const groupOf = t => (t.creator || '').toLowerCase() || (t.niche || '').toLowerCase();
+
 function queue(){
-  return thumbs.filter(t => !t.hidden && !(t.myTitles && t.myTitles.length))
-    .sort((a, b) => (a.seenAt ? 1 : 0) - (b.seenAt ? 1 : 0) || String(b.addedAt).localeCompare(String(a.addedAt)));
+  const todo = thumbs.filter(t => !t.hidden && !(t.myTitles && t.myTitles.length));
+  const unseen = todo.filter(t => !t.seenAt).sort((a, b) => rank(a.id) - rank(b.id));
+  const seen = todo.filter(t => t.seenAt).sort((a, b) => rank(a.id) - rank(b.id));
+  return spread(unseen).concat(spread(seen));
+}
+
+/* Reorder so the same creator / niche doesn't show up twice in a row when it can be avoided. */
+function spread(list){
+  const left = list.slice(), out = [];
+  while (left.length){
+    const prev = out.length ? groupOf(out[out.length - 1]) : null;
+    let i = left.findIndex(t => groupOf(t) !== prev && (t.niche || '') !== (out.length && out[out.length - 1].niche || '') );
+    if (i < 0) i = left.findIndex(t => groupOf(t) !== prev);
+    if (i < 0) i = 0;
+    out.push(left.splice(i, 1)[0]);
+  }
+  return out;
 }
 function pickNext(skipId){
   const q = queue().filter(t => t.id !== skipId);
@@ -321,7 +341,7 @@ function revealBlock(t, mine){
   return '<div class="reveal">' +
     (mine.length ? '<div class="label">Your title' + (mine.length > 1 ? 's' : '') + '</div><ul class="mine">' + mine.map(m => '<li>' + esc(m.text) + '</li>').join('') + '</ul><div style="height:14px"></div>' : '') +
     '<div class="label">Real title</div><div class="real">' + esc(t.title || 'Unknown') + '</div>' +
-    '<div class="by">' + (t.creator ? esc(t.creator) + ' · ' : '') + '<a href="' + esc(t.url) + '" target="_blank" rel="noopener">Watch on YouTube</a></div>' +
+    '<div class="by">' + (t.creator ? esc(t.creator) + ' · ' : '') + (t.views ? esc(t.views) + ' views · ' : '') + '<a href="' + esc(t.url) + '" target="_blank" rel="noopener">Watch on YouTube</a></div>' +
     '<div class="row">' +
       '<form class="title-form" id="titleForm" style="margin:0;flex:1"><input id="titleInput" autocomplete="off" maxlength="300" placeholder="Another idea? Add it"><button class="btn" type="submit">Add</button></form>' +
       '<button class="btn primary" data-act="next">Next ' + ICON_ARROW + '</button>' +

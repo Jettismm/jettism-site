@@ -86,6 +86,7 @@ function doPost(e) {
 /* ---------- thumbnail practice (jettism.com/thumbs) ---------- */
 
 const OWNER_EMAIL = 'jettism.contact@gmail.com';
+const MIN_VIEWS = 50000;   // thumbnails from videos under this many views are never shown
 
 /**
  * thumbs.json = { thumbs: [shared pool], users: { "<email>": profile } }
@@ -100,6 +101,7 @@ function thumbsAction(req, who) {
   let changed = migrateThumbs(data);
   importThumbsInbox(data);
   if (data.__imported) { changed = true; delete data.__imported; }
+  if (checkViews(data)) changed = true;
 
   const email = who.email;
   if (!data.users[email]) { data.users[email] = blankProfile(); changed = true; }
@@ -155,7 +157,7 @@ function thumbsAction(req, who) {
   if (changed) saveJson('thumbs.json', data);
 
   // Give the page the shared pool merged with ONLY this person's profile.
-  const view = data.thumbs.map(x => ({
+  const view = data.thumbs.filter(x => x.checkedAt && !x.lowViews && !x.gone).map(x => ({
     id: x.id, title: x.title, creator: x.creator, niche: x.niche, views: x.views, url: x.url, addedAt: x.addedAt,
     myTitles: me.titles[x.id] || [],
     saved: !!me.saved[x.id], savedAt: me.saved[x.id] || '',
@@ -163,6 +165,45 @@ function thumbsAction(req, who) {
     seenAt: me.seen[x.id] || ''
   }));
   return out({ ok: true, email, thumbs: view, notepad: me.notepad });
+}
+
+/**
+ * Ask YouTube for the real view count, title and channel of every thumbnail not checked yet
+ * (YouTube Data API advanced service, run as the site owner). Videos under MIN_VIEWS, or that
+ * no longer exist, stay in the pool (so the scout never re-adds them) but are never shown.
+ */
+function checkViews(data) {
+  const todo = data.thumbs.filter(x => !x.checkedAt).map(x => x.id);
+  if (!todo.length) return false;
+  const now = new Date().toISOString();
+  for (let i = 0; i < todo.length; i += 50) {
+    const ids = todo.slice(i, i + 50);
+    let items;
+    try { items = YouTube.Videos.list('snippet,statistics', { id: ids.join(','), maxResults: 50 }).items || []; }
+    catch (e) { return i > 0; }          // try again on the next page load
+    const found = {};
+    items.forEach(v => {
+      found[v.id] = true;
+      const x = data.thumbs.find(t => t.id === v.id);
+      const n = Number((v.statistics && v.statistics.viewCount) || 0);
+      x.viewCount = n;
+      x.views = shortViews(n);
+      if (v.snippet) { x.title = v.snippet.title || x.title; x.creator = v.snippet.channelTitle || x.creator; }
+      x.lowViews = n < MIN_VIEWS;
+      x.checkedAt = now;
+    });
+    ids.forEach(id => {
+      if (!found[id]) { const x = data.thumbs.find(t => t.id === id); x.gone = true; x.checkedAt = now; }
+    });
+  }
+  return true;
+}
+
+function shortViews(n) {
+  if (n >= 1e9) return (n / 1e9).toFixed(1).replace(/\.0$/, '') + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n >= 1e3) return Math.round(n / 1e3) + 'K';
+  return String(n);
 }
 
 function blankProfile() {
@@ -345,5 +386,6 @@ function out(obj) {
 /** Run once from the editor to grant Drive + external request permissions. */
 function authorize() {
   DriveApp.getFolderById(FOLDER_ID).getName();
+  YouTube.Videos.list('statistics', { id: 'dQw4w9WgXcQ' });
   UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=x', { muteHttpExceptions: true });
 }
