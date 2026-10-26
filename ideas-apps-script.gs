@@ -17,6 +17,7 @@
 const CLIENT_ID = '527398886152-lraqu16t3ftnb9fqlgjf0givm9bs1s2v.apps.googleusercontent.com';
 const FOLDER_ID = '1LTfMhKHx4Osf4i4TLzDalJRJd45Ih9mC';
 const INBOX_ID  = '1RNMV62XDc8OZwZivcrTy0ifqTtWEY4z6';
+const THUMBS_INBOX_ID = '19vMTZvOrjO4fA25kbr8-R4lqq3GgEAjD';
 
 function doPost(e) {
   let req;
@@ -28,6 +29,9 @@ function doPost(e) {
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  if (String(req.action || '').indexOf('thumbs.') === 0) {
+    try { return thumbsAction(req, who); } finally { lock.releaseLock(); }
+  }
   try {
     const board = loadBoard();
     importInbox(board);
@@ -77,6 +81,106 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ---------- thumbnail practice (jettism.com/thumbs) ---------- */
+
+function thumbsAction(req, who) {
+  const data = loadJson('thumbs.json', { thumbs: [], notepad: '' });
+  data.thumbs = data.thumbs || [];
+  if (typeof data.notepad !== 'string') data.notepad = '';
+  importThumbsInbox(data);
+  const now = new Date().toISOString();
+  const t = req.id ? data.thumbs.find(x => x.id === req.id) : null;
+  if (req.id && !t) return out({ ok: false, error: 'not_found' });
+
+  switch (req.action) {
+    case 'thumbs.list':
+      break;
+
+    case 'thumbs.title': {           // save one of my titles; also add it to the notepad
+      const text = String(req.text || '').trim().slice(0, 300);
+      if (!text) return out({ ok: false, error: 'bad_request' });
+      t.myTitles = t.myTitles || [];
+      t.myTitles.push({ text, at: now });
+      data.notepad = (data.notepad.replace(/\s+$/, '') + (data.notepad.trim() ? '\n' : '') + text);
+      break;
+    }
+
+    case 'thumbs.save':              // bookmark on/off
+      t.saved = !!req.saved;
+      t.savedAt = t.saved ? now : '';
+      break;
+
+    case 'thumbs.hide': {            // "don't recommend this" + why
+      const reason = String(req.reason || '').trim().slice(0, 2000);
+      if (!reason) return out({ ok: false, error: 'reason_required' });
+      t.hidden = true; t.hideReason = reason; t.hiddenAt = now;
+      break;
+    }
+
+    case 'thumbs.unhide':
+      t.hidden = false;
+      break;
+
+    case 'thumbs.seen':
+      t.seenAt = now;
+      break;
+
+    case 'thumbs.notepad':
+      data.notepad = String(req.text || '').slice(0, 200000);
+      data.notepadAt = now;
+      break;
+
+    default:
+      return out({ ok: false, error: 'bad_request' });
+  }
+
+  if (req.action !== 'thumbs.list' || data.__imported) { delete data.__imported; saveJson('thumbs.json', data); }
+  return out({ ok: true, email: who.email, thumbs: data.thumbs, notepad: data.notepad });
+}
+
+function importThumbsInbox(data) {
+  const files = DriveApp.getFolderById(THUMBS_INBOX_ID).getFiles();
+  const seen = {};
+  data.thumbs.forEach(x => seen[x.id] = true);
+  const batches = [];
+  while (files.hasNext()) batches.push(files.next());
+  batches.sort((a, b) => a.getDateCreated() - b.getDateCreated());
+  batches.forEach(file => {
+    let b;
+    try { b = JSON.parse(file.getBlob().getDataAsString()); }
+    catch (e) { file.setName('BROKEN - ' + file.getName()); return; }
+    const list = Array.isArray(b) ? b : (b.thumbs || []);
+    const at = b.generatedAt || file.getDateCreated().toISOString();
+    list.forEach(raw => {
+      const id = String(raw.id || '').trim();
+      if (!/^[A-Za-z0-9_-]{6,20}$/.test(id) || seen[id]) return;
+      seen[id] = true;
+      data.thumbs.push({
+        id, addedAt: at,
+        title: String(raw.title || ''), creator: String(raw.creator || ''),
+        niche: String(raw.niche || ''), views: String(raw.views || ''),
+        url: raw.url || ('https://www.youtube.com/watch?v=' + id),
+        myTitles: [], saved: false, hidden: false
+      });
+    });
+    file.setTrashed(true);
+    data.__imported = true;
+  });
+}
+
+function loadJson(name, fallback) {
+  const f = newestFile(FOLDER_ID, name);
+  if (!f) return fallback;
+  try { return JSON.parse(f.getBlob().getDataAsString()); } catch (e) { return fallback; }
+}
+
+function saveJson(name, obj) {
+  const f = newestFile(FOLDER_ID, name);
+  const text = JSON.stringify(obj);
+  if (f) f.setContent(text);
+  else DriveApp.getFolderById(FOLDER_ID).createFile(name, text, 'application/json');
 }
 
 function doGet() {

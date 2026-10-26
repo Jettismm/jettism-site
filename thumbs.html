@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Jettism — Title Trainer</title>
+<link rel="icon" type="image/png" href="jettismicontransparent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg-0:#313338; --bg-1:#2b2d31; --panel:#2b2d31; --card:#383a40;
+    --line:rgba(255,255,255,0.07); --line-hi:rgba(255,255,255,0.14);
+    --blurple:#5865f2; --gold:#f0ed6a; --green:#3ba55d; --red:#ed4245;
+    --text-hi:#f2f3f5; --text-mid:#c4c9ce; --text-lo:#949ba4;
+    --rail:64px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; min-height:100vh; background:var(--bg-0); color:var(--text-hi);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-font-smoothing:antialiased; }
+  body::before{ content:""; position:fixed; inset:0; z-index:-1;
+    background:
+      radial-gradient(ellipse 900px 500px at 10% -10%, rgba(240,237,106,0.05), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(88,101,242,0.09), transparent 55%),
+      linear-gradient(180deg,var(--bg-0) 0%,var(--bg-1) 100%); }
+  button{ font-family:inherit; }
+  .hidden{ display:none !important; }
+
+  /* sign-in wall */
+  #lock{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .lock-card{ width:100%; max-width:380px; text-align:center; background:var(--bg-1); border:1px solid var(--line);
+    border-radius:16px; padding:36px 28px 30px; }
+  .lock-card img{ height:46px; margin-bottom:14px; }
+  .lock-card h1{ font-size:22px; margin:0 0 6px; }
+  .lock-card p{ color:var(--text-lo); font-size:14px; margin:0 0 24px; line-height:1.5; }
+  #gbtn{ display:flex; justify-content:center; min-height:44px; }
+  .lock-err{ color:#ff9a9c; font-size:13px; margin-top:16px; min-height:18px; line-height:1.45; }
+
+  /* shell */
+  header{ padding:26px calc(var(--rail) + 28px) 18px 28px; display:flex; align-items:center; justify-content:space-between;
+    gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--line); }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .brand img{ height:42px; }
+  .eyebrow{ font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-lo); margin:0 0 3px; }
+  header h1{ font-size:24px; margin:0; font-weight:800; letter-spacing:-0.02em; }
+  .who{ display:flex; align-items:center; gap:12px; font-size:13px; color:var(--text-lo); }
+  .ghost-btn{ background:transparent; border:1px solid var(--line-hi); color:var(--text-mid); padding:7px 12px; border-radius:8px;
+    font-size:12.5px; font-weight:600; cursor:pointer; }
+  .ghost-btn:hover{ color:var(--text-hi); border-color:var(--text-lo); }
+  main{ padding:28px calc(var(--rail) + 28px) 60px 28px; }
+
+  .rail{ position:fixed; top:0; right:0; bottom:0; width:var(--rail); background:#1e1f22; border-left:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; gap:10px; padding-top:22px; z-index:20; }
+  .rail button{ position:relative; width:44px; height:44px; border-radius:12px; border:0; cursor:pointer; background:transparent;
+    color:var(--text-lo); display:flex; align-items:center; justify-content:center; transition:background .15s, color .15s; }
+  .rail button:hover{ background:#2b2d31; color:var(--text-hi); }
+  .rail button.active{ background:#383a40; color:var(--gold); }
+  .rail button.active::before{ content:""; position:absolute; left:-10px; top:10px; bottom:10px; width:3px; border-radius:3px; background:var(--gold); }
+  .rail svg{ width:22px; height:22px; }
+  .rail .badge{ position:absolute; top:4px; right:4px; min-width:16px; height:16px; padding:0 4px; background:var(--red); color:#fff;
+    border-radius:8px; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+  /* main trainer */
+  .trainer{ max-width:820px; margin:0 auto; }
+  .meta-row{ display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:13px; color:var(--text-lo); }
+  .meta-row .left{ margin-right:auto; }
+  .pill{ font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:3px 8px; border-radius:6px;
+    border:1px solid rgba(240,237,106,.3); color:var(--gold); background:rgba(240,237,106,.08); }
+  .thumb-wrap{ position:relative; border-radius:14px; overflow:hidden; background:#1e1f22; border:1px solid var(--line);
+    aspect-ratio:16/9; box-shadow:0 20px 50px rgba(0,0,0,.35); }
+  .thumb-wrap img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb-tools{ position:absolute; top:12px; right:12px; display:flex; gap:8px; }
+  .icon-btn{ width:40px; height:40px; border-radius:10px; border:1px solid rgba(255,255,255,.18); cursor:pointer;
+    background:rgba(17,18,20,.72); color:#fff; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(6px);
+    transition:background .15s, color .15s, border-color .15s; }
+  .icon-btn svg{ width:19px; height:19px; }
+  .icon-btn:hover{ background:rgba(17,18,20,.9); border-color:rgba(255,255,255,.35); }
+  .icon-btn.on{ color:var(--gold); border-color:rgba(240,237,106,.55); }
+  .icon-btn.on svg{ fill:currentColor; }
+  .icon-btn.warn:hover{ color:#ff9a9c; border-color:rgba(237,66,69,.6); }
+
+  .title-form{ margin-top:18px; display:flex; gap:10px; }
+  .title-form input{ flex:1; min-width:0; background:#1e1f22; border:1px solid var(--line-hi); border-radius:10px; color:var(--text-hi);
+    font-size:17px; font-weight:600; padding:14px 16px; font-family:inherit; }
+  .title-form input:focus{ outline:none; border-color:var(--blurple); }
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:12px 16px; border-radius:10px; font-size:14px;
+    font-weight:700; cursor:pointer; border:1px solid var(--line-hi); background:rgba(255,255,255,0.03); color:var(--text-hi); white-space:nowrap; }
+  .btn svg{ width:16px; height:16px; }
+  .btn.primary{ background:var(--blurple); border-color:var(--blurple); }
+  .btn.primary:hover{ filter:brightness(1.1); }
+  .btn:hover{ border-color:var(--text-lo); }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .sub-actions{ display:flex; gap:16px; margin-top:12px; font-size:13px; }
+  .linkish{ background:none; border:0; padding:0; color:var(--text-lo); cursor:pointer; font-size:13px; text-decoration:underline; text-underline-offset:3px; }
+  .linkish:hover{ color:var(--text-hi); }
+
+  .reveal{ margin-top:18px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+    animation:fadeUp .3s ease both; }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:none;} }
+  .reveal .label{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--text-lo); margin-bottom:4px; }
+  .reveal .real{ font-size:18px; font-weight:700; line-height:1.35; }
+  .reveal .by{ font-size:13px; color:var(--text-lo); margin-top:4px; }
+  .reveal .by a{ color:var(--text-mid); }
+  .mine{ margin:12px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+  .mine li{ font-size:14px; color:var(--text-mid); padding-left:12px; border-left:2px solid var(--blurple); }
+  .reveal .row{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+
+  .empty{ color:var(--text-lo); font-size:14px; text-align:center; padding:60px 10px; line-height:1.6; }
+  .loading{ color:var(--text-lo); font-size:14px; padding:40px 0; text-align:center; }
+  kbd{ font-family:inherit; font-size:11px; background:#1e1f22; border:1px solid var(--line-hi); border-radius:4px; padding:1px 5px; color:var(--text-mid); }
+
+  /* saved */
+  .view-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:18px; }
+  .view-head h2{ margin:0; font-size:18px; }
+  .view-head p{ margin:0; color:var(--text-lo); font-size:13px; }
+  .grid{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  .scard{ background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+  .scard .img{ aspect-ratio:16/9; background:#1e1f22; position:relative; }
+  .scard .img img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .scard .img .icon-btn{ position:absolute; top:8px; right:8px; width:34px; height:34px; }
+  .scard .body{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:8px; }
+  .scard .real{ font-size:13.5px; font-weight:700; line-height:1.35; }
+  .scard .by{ font-size:12px; color:var(--text-lo); }
+  .scard .mine li{ font-size:13px; }
+
+  /* notepad */
+  .notepad{ max-width:860px; margin:0 auto; }
+  .note-bar{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .note-bar h2{ margin:0; font-size:18px; margin-right:auto; }
+  .note-status{ font-size:12px; color:var(--text-lo); }
+  #notepad{ width:100%; min-height:calc(100vh - 230px); background:#1e1f22; border:1px solid var(--line); border-radius:12px;
+    color:var(--text-hi); font-family:inherit; font-size:16px; line-height:1.7; padding:22px 24px; resize:vertical; }
+  #notepad:focus{ outline:none; border-color:var(--blurple); }
+
+  /* modal + toast */
+  .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal{ width:100%; max-width:460px; background:var(--bg-0); border:1px solid var(--line-hi); border-radius:14px; padding:22px; }
+  .modal h3{ margin:0 0 4px; font-size:17px; }
+  .modal .sub{ margin:0 0 14px; color:var(--text-lo); font-size:13px; line-height:1.45; }
+  .modal textarea{ width:100%; min-height:100px; background:#1e1f22; border:1px solid var(--line-hi); border-radius:8px; color:var(--text-hi);
+    font-size:14px; padding:10px 12px; font-family:inherit; resize:vertical; }
+  .modal textarea:focus{ outline:none; border-color:var(--blurple); }
+  .modal .err{ color:#ff9a9c; font-size:12.5px; min-height:16px; margin-top:6px; }
+  .modal .row{ display:flex; gap:8px; margin-top:12px; }
+  .modal .row .btn{ flex:1; }
+  .toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:#111214; border:1px solid var(--line-hi);
+    color:var(--text-hi); padding:10px 14px; border-radius:10px; font-size:13px; z-index:60; display:flex; gap:12px; align-items:center; }
+  .toast button{ background:none; border:0; color:var(--gold); font-weight:700; cursor:pointer; font-size:13px; padding:0; }
+
+  @media (max-width:1000px){ .grid{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:640px){
+    :root{ --rail:56px; }
+    header{ padding:18px calc(var(--rail) + 16px) 14px 16px; }
+    main{ padding:16px calc(var(--rail) + 16px) 48px 16px; }
+    .grid{ grid-template-columns:1fr; }
+    .who span{ display:none; }
+    .title-form{ flex-direction:column; }
+    .title-form input{ font-size:16px; }
+  }
+</style>
+</head>
+<body>
+
+<section id="lock">
+  <div class="lock-card">
+    <img src="jettismicontransparent.png" alt="Jettism">
+    <h1>Title Trainer</h1>
+    <p>Private to the Jettism team. Sign in with an approved Google account.</p>
+    <div id="gbtn"></div>
+    <div class="lock-err" id="lockErr"></div>
+  </div>
+</section>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="brand">
+      <img src="jettismicontransparent.png" alt="">
+      <div>
+        <p class="eyebrow">Jettism · Thumbnail practice</p>
+        <h1 id="viewTitle">Title Trainer</h1>
+      </div>
+    </div>
+    <div class="who"><span id="whoEmail"></span><button class="ghost-btn" id="signOut">Sign out</button></div>
+  </header>
+
+  <nav class="rail" aria-label="Views">
+    <button id="tabMain" class="active" title="Title thumbnails" aria-label="Title thumbnails">
+      <!-- easel / canvas -->
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="12" rx="2"/><path d="M12 15v3"/><path d="m8 21 4-3 4 3"/><path d="M12 3V2"/></svg>
+      <span class="badge hidden" id="mainBadge"></span>
+    </button>
+    <button id="tabSaved" title="Saved thumbnails" aria-label="Saved thumbnails">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+    </button>
+    <button id="tabNotes" title="Notepad" aria-label="Notepad">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"/><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><path d="M21.4 5.6a2.1 2.1 0 1 0-3-3L13 8l-1 4 4-1z"/></svg>
+    </button>
+  </nav>
+
+  <main>
+    <div id="loading" class="loading">Loading thumbnails…</div>
+
+    <!-- Main: title the thumbnail -->
+    <section id="mainView" class="trainer hidden"></section>
+
+    <!-- Saved -->
+    <section id="savedView" class="hidden">
+      <div class="view-head"><h2>Saved thumbnails</h2><p id="savedCount"></p></div>
+      <div class="grid" id="savedGrid"></div>
+    </section>
+
+    <!-- Notepad -->
+    <section id="notesView" class="notepad hidden">
+      <div class="note-bar"><h2>Title notepad</h2><span class="note-status" id="noteStatus"></span></div>
+      <textarea id="notepad" spellcheck="true" placeholder="Every title you write shows up here. Edit freely; it saves as you type."></textarea>
+    </section>
+  </main>
+</div>
+
+<div class="modal-bg hidden" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3>Don’t recommend this</h3>
+    <p class="sub">Why shouldn’t thumbnails like this show up for you? The daily thumbnail agent reads this.</p>
+    <textarea id="mText" placeholder="e.g. tutorial channel, not a real creator / too small / not SMP content"></textarea>
+    <div class="err" id="mErr"></div>
+    <div class="row"><button class="btn" id="mCancel">Cancel</button><button class="btn primary" id="mSubmit">Hide it</button></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"><span id="toastMsg"></span><button id="toastUndo" class="hidden">Undo</button></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '527398886152-lraqu16t3ftnb9fqlgjf0givm9bs1s2v.apps.googleusercontent.com';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyptp2MjQ9GkoG1M0LLWY0zJlYWbma1pkAwtEGVNSYctJoQpH0SR2YVj5h_oxZm6LXH/exec';
+
+const ICON_BOOKMARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>';
+const ICON_HIDE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/></svg>';
+const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+
+let idToken = null, thumbs = [], notepad = '', view = 'main';
+let current = null, revealed = false;
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const img = id => 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/hqdefault.jpg';
+
+/* ---------- auth (same sign-in as the Idea Board) ---------- */
+function tokenExp(t){ try{ return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000; }catch(e){ return 0; } }
+function storeToken(t){ try{ sessionStorage.setItem('jt_idtoken', t); }catch(e){} }
+function readToken(){ try{ return sessionStorage.getItem('jt_idtoken'); }catch(e){ return null; } }
+function clearToken(){ try{ sessionStorage.removeItem('jt_idtoken'); }catch(e){} }
+function showLock(msg){ $('app').classList.add('hidden'); $('lock').classList.remove('hidden'); $('lockErr').textContent = msg || ''; }
+
+function initGoogle(){
+  if (!window.google || !google.accounts){ return setTimeout(initGoogle, 150); }
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: r => { idToken = r.credential; storeToken(idToken); start(); }, auto_select:false, ux_mode:'popup' });
+  google.accounts.id.renderButton($('gbtn'), { theme:'filled_black', size:'large', shape:'pill', text:'signin_with', width:260 });
+}
+function signOut(){ clearToken(); idToken = null; if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock(''); }
+
+async function api(action, extra){
+  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ idToken, action }, extra || {})) });
+  const data = await res.json();
+  if (!data.ok){
+    if (data.error === 'signin_required'){ clearToken(); showLock('Your session expired. Sign in again.'); }
+    else if (data.error === 'not_allowed'){ clearToken(); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock((data.email || 'That account') + ' isn’t allowed here. Click the button again and pick an approved account.'); }
+    throw new Error(data.error || 'request_failed');
+  }
+  if (data.thumbs) thumbs = data.thumbs;
+  if (typeof data.notepad === 'string' && document.activeElement !== $('notepad') && !noteDirty) notepad = data.notepad;
+  return data;
+}
+
+async function start(){
+  $('lock').classList.add('hidden'); $('app').classList.remove('hidden'); $('loading').classList.remove('hidden');
+  try{
+    const data = await api('thumbs.list');
+    $('whoEmail').textContent = data.email;
+    pickNext(); render();
+  }catch(e){
+    if (e.message !== 'signin_required' && e.message !== 'not_allowed') toast('Couldn’t load thumbnails. Refresh to try again.');
+  }finally{ $('loading').classList.add('hidden'); }
+}
+
+/* ---------- queue ---------- */
+function queue(){
+  return thumbs.filter(t => !t.hidden && !(t.myTitles && t.myTitles.length))
+    .sort((a, b) => (a.seenAt ? 1 : 0) - (b.seenAt ? 1 : 0) || String(b.addedAt).localeCompare(String(a.addedAt)));
+}
+function pickNext(skipId){
+  const q = queue().filter(t => t.id !== skipId);
+  current = q[0] || null; revealed = false;
+}
+
+/* ---------- rendering ---------- */
+function renderMain(){
+  const left = queue().length;
+  if (!current){
+    $('mainView').innerHTML = '<div class="empty">You’ve titled every thumbnail. Nice.<br>New ones show up every day.</div>';
+    return;
+  }
+  const t = current;
+  const mine = (t.myTitles || []);
+  $('mainView').innerHTML =
+    '<div class="meta-row"><span class="left">' + left + ' to title' + '</span>' + (t.niche ? '<span class="pill">' + esc(t.niche) + '</span>' : '') + '</div>' +
+    '<div class="thumb-wrap"><img src="' + img(t.id) + '" alt="Thumbnail to title" referrerpolicy="no-referrer">' +
+      '<div class="thumb-tools">' +
+        '<button class="icon-btn' + (t.saved ? ' on' : '') + '" data-act="save" data-id="' + esc(t.id) + '" title="' + (t.saved ? 'Saved' : 'Save thumbnail') + '" aria-label="Save thumbnail">' + ICON_BOOKMARK + '</button>' +
+        '<button class="icon-btn warn" data-act="hide" data-id="' + esc(t.id) + '" title="Don’t recommend this" aria-label="Don’t recommend this">' + ICON_HIDE + '</button>' +
+      '</div></div>' +
+    (revealed ? revealBlock(t, mine) :
+      '<form class="title-form" id="titleForm"><input id="titleInput" autocomplete="off" maxlength="300" placeholder="What would you title this thumbnail?"><button class="btn primary" type="submit">Save title</button></form>' +
+      '<div class="sub-actions"><button class="linkish" data-act="peek">Show real title</button><button class="linkish" data-act="skip">Skip</button><span style="color:var(--text-lo);margin-left:auto"><kbd>Enter</kbd> to save</span></div>');
+  const inp = $('titleInput'); if (inp && view === 'main') setTimeout(() => inp.focus(), 20);
+}
+
+function revealBlock(t, mine){
+  return '<div class="reveal">' +
+    (mine.length ? '<div class="label">Your title' + (mine.length > 1 ? 's' : '') + '</div><ul class="mine">' + mine.map(m => '<li>' + esc(m.text) + '</li>').join('') + '</ul><div style="height:14px"></div>' : '') +
+    '<div class="label">Real title</div><div class="real">' + esc(t.title || 'Unknown') + '</div>' +
+    '<div class="by">' + (t.creator ? esc(t.creator) + ' · ' : '') + '<a href="' + esc(t.url) + '" target="_blank" rel="noopener">Watch on YouTube</a></div>' +
+    '<div class="row">' +
+      '<form class="title-form" id="titleForm" style="margin:0;flex:1"><input id="titleInput" autocomplete="off" maxlength="300" placeholder="Another idea? Add it"><button class="btn" type="submit">Add</button></form>' +
+      '<button class="btn primary" data-act="next">Next ' + ICON_ARROW + '</button>' +
+    '</div></div>';
+}
+
+function renderSaved(){
+  const s = thumbs.filter(t => t.saved).sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+  $('savedCount').textContent = s.length + (s.length === 1 ? ' thumbnail' : ' thumbnails');
+  $('savedGrid').innerHTML = s.length ? s.map(t =>
+    '<article class="scard"><div class="img"><img src="' + img(t.id) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' +
+    '<button class="icon-btn on" data-act="save" data-id="' + esc(t.id) + '" title="Remove from saved" aria-label="Remove from saved">' + ICON_BOOKMARK + '</button></div>' +
+    '<div class="body"><div class="real">' + esc(t.title) + '</div><div class="by">' + (t.creator ? esc(t.creator) + ' · ' : '') + '<a style="color:var(--text-mid)" href="' + esc(t.url) + '" target="_blank" rel="noopener">YouTube</a></div>' +
+    ((t.myTitles || []).length ? '<ul class="mine">' + t.myTitles.map(m => '<li>' + esc(m.text) + '</li>').join('') + '</ul>' : '') +
+    '</div></article>').join('') : '<div class="empty" style="grid-column:1/-1">Bookmark a thumbnail to keep it here.</div>';
+}
+
+function render(){
+  $('mainView').classList.toggle('hidden', view !== 'main');
+  $('savedView').classList.toggle('hidden', view !== 'saved');
+  $('notesView').classList.toggle('hidden', view !== 'notes');
+  $('viewTitle').textContent = view === 'main' ? 'Title Trainer' : view === 'saved' ? 'Saved' : 'Notepad';
+  ['Main','Saved','Notes'].forEach(n => $('tab' + n).classList.toggle('active', view === n.toLowerCase()));
+  const left = queue().length; const b = $('mainBadge');
+  b.textContent = left > 99 ? '99+' : left; b.classList.toggle('hidden', !left || view === 'main');
+  if (view === 'main') renderMain();
+  if (view === 'saved') renderSaved();
+  if (view === 'notes' && document.activeElement !== $('notepad') && !noteDirty) $('notepad').value = notepad;
+}
+function setView(v){ view = v; render(); if (v === 'notes') setTimeout(() => $('notepad').focus(), 30); }
+
+/* ---------- actions ---------- */
+async function submitTitle(){
+  const inp = $('titleInput'); const text = (inp.value || '').trim();
+  if (!text || !current) return;
+  inp.disabled = true;
+  try{
+    await api('thumbs.title', { id: current.id, text });
+    current = thumbs.find(t => t.id === current.id); revealed = true; render();
+  }catch(e){ inp.disabled = false; if (e.message !== 'signin_required' && e.message !== 'not_allowed') toast('Couldn’t save. Try again.'); }
+}
+
+async function toggleSave(id){
+  const t = thumbs.find(x => x.id === id); if (!t) return;
+  const saved = !t.saved; t.saved = saved; render();
+  try{ await api('thumbs.save', { id, saved }); if (current) current = thumbs.find(x => x.id === current.id) || current; render(); toast(saved ? 'Saved' : 'Removed from saved'); }
+  catch(e){ t.saved = !saved; render(); }
+}
+
+let hideId = null;
+function openHide(id){ hideId = id; $('mText').value = ''; $('mErr').textContent = ''; $('mSubmit').disabled = false; $('modalBg').classList.remove('hidden'); setTimeout(() => $('mText').focus(), 30); }
+function closeHide(){ $('modalBg').classList.add('hidden'); hideId = null; }
+async function submitHide(){
+  const reason = $('mText').value.trim();
+  if (!reason){ $('mErr').textContent = 'Add a reason so the agent can learn from it.'; return; }
+  const id = hideId; $('mSubmit').disabled = true;
+  try{
+    await api('thumbs.hide', { id, reason });
+    closeHide();
+    if (current && current.id === id) pickNext(); render();
+    toast('Hidden. The agent will skip things like this.', async () => { await api('thumbs.unhide', { id }); pickNext(); render(); });
+  }catch(e){ $('mSubmit').disabled = false; if (e.message !== 'signin_required' && e.message !== 'not_allowed') $('mErr').textContent = 'Couldn’t save. Try again.'; }
+}
+
+function skip(){
+  if (!current) return;
+  const id = current.id; current.seenAt = new Date().toISOString();
+  pickNext(id); render();
+  api('thumbs.seen', { id }).catch(() => {});
+}
+
+/* notepad autosave */
+let noteTimer = null, noteDirty = false;
+$('notepad').addEventListener('input', () => {
+  noteDirty = true; notepad = $('notepad').value; $('noteStatus').textContent = 'Saving…';
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(async () => {
+    const text = $('notepad').value;
+    try{ await api('thumbs.notepad', { text }); noteDirty = ($('notepad').value !== text); $('noteStatus').textContent = 'Saved'; }
+    catch(e){ $('noteStatus').textContent = 'Not saved — check your connection'; }
+  }, 800);
+});
+
+let toastTimer;
+function toast(msg, undo){
+  $('toastMsg').textContent = msg; $('toast').classList.remove('hidden');
+  const u = $('toastUndo'); u.classList.toggle('hidden', !undo);
+  u.onclick = undo ? async () => { $('toast').classList.add('hidden'); try{ await undo(); }catch(e){} } : null;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.add('hidden'), undo ? 6000 : 2200);
+}
+
+document.addEventListener('submit', e => { if (e.target.id === 'titleForm'){ e.preventDefault(); submitTitle(); } });
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const id = b.dataset.id;
+  switch (b.dataset.act){
+    case 'save': toggleSave(id); break;
+    case 'hide': openHide(id); break;
+    case 'peek': revealed = true; render(); if (current) api('thumbs.seen', { id: current.id }).catch(() => {}); break;
+    case 'skip': skip(); break;
+    case 'next': pickNext(current && current.id); render(); break;
+  }
+});
+$('tabMain').onclick = () => setView('main');
+$('tabSaved').onclick = () => setView('saved');
+$('tabNotes').onclick = () => setView('notes');
+$('signOut').onclick = signOut;
+$('mCancel').onclick = closeHide;
+$('mSubmit').onclick = submitHide;
+$('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) closeHide(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHide(); });
+window.addEventListener('beforeunload', e => { if (noteDirty){ e.preventDefault(); e.returnValue = ''; } });
+
+(function boot(){
+  const t = readToken();
+  if (t && tokenExp(t) > Date.now() + 60000){ idToken = t; start(); }
+  initGoogle();
+})();
+</script>
+</body>
+</html>
