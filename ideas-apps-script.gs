@@ -86,7 +86,8 @@ function doPost(e) {
 /* ---------- thumbnail practice (jettism.com/thumbs) ---------- */
 
 const OWNER_EMAIL = 'jettism.contact@gmail.com';
-const MIN_VIEWS = 50000;   // thumbnails from videos under this many views are never shown
+const MIN_VIEWS = 50000;      // thumbnails from videos under this many views are never shown
+const MAX_VIEWS = 10000000;   // ...or over this many (titles everyone already knows)
 
 /**
  * thumbs.json = { thumbs: [shared pool], users: { "<email>": profile } }
@@ -160,7 +161,7 @@ function thumbsAction(req, who) {
   if (req.action !== 'thumbs.list') return out({ ok: true, email });
 
   // Give the page the shared pool merged with ONLY this person's profile.
-  const view = data.thumbs.filter(x => x.checkedAt && !x.lowViews && !x.gone).map(x => ({
+  const view = data.thumbs.filter(x => x.checkedAt && !x.lowViews && !x.gone && !(x.viewCount > MAX_VIEWS)).map(x => ({
     id: x.id, title: x.title, creator: x.creator, niche: x.niche, views: x.views, url: x.url, addedAt: x.addedAt,
     myTitles: me.titles[x.id] || [],
     saved: !!me.saved[x.id], savedAt: me.saved[x.id] || '',
