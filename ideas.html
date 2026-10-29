@@ -217,6 +217,19 @@
   }
   .modal h3{ margin:0 0 4px; font-size:17px; }
   .modal .sub{ margin:0 0 14px; color:var(--text-lo); font-size:13px; line-height:1.45; }
+  .auto-box{ background:#1e1f22; border:1px solid var(--line-hi); border-radius:10px; padding:10px 12px; margin-bottom:10px; }
+  .auto-check{ display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; font-size:13.5px; font-weight:700; }
+  .auto-check input{ display:none; }
+  .auto-check .box{ width:18px; height:18px; border-radius:5px; border:1.5px solid var(--text-lo); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .auto-check .box svg{ width:12px; height:12px; opacity:0; color:#fff; }
+  .auto-check input:checked + .box{ background:var(--red); border-color:var(--red); }
+  .auto-check input:checked + .box svg{ opacity:1; }
+  #autoDetails{ margin-top:8px; }
+  #autoDetails p{ margin:8px 0 0; font-size:13px; line-height:1.55; color:var(--text-mid); white-space:pre-wrap; }
+  .whynot{ border:1px solid rgba(237,66,69,.28); background:rgba(237,66,69,.06); border-radius:8px; padding:8px 10px; }
+  .whynot summary{ color:#ff9a9c; }
+  .whynot p{ margin:8px 0 0; line-height:1.55; white-space:pre-wrap; }
+  .auto-tag{ font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--text-lo); margin-left:6px; }
   .modal textarea{
     width:100%; min-height:110px; background:#1e1f22; border:1px solid var(--line-hi); border-radius:8px;
     color:var(--text-hi); font-size:14px; padding:10px 12px; font-family:inherit; resize:vertical;
@@ -311,6 +324,10 @@
   <div class="modal" role="dialog" aria-modal="true">
     <h3 id="mTitle"></h3>
     <p class="sub" id="mSub"></p>
+    <div class="auto-box hidden" id="autoBox">
+      <label class="auto-check"><input type="checkbox" id="autoCheck"><span class="box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Auto Reject Response</label>
+      <details id="autoDetails"><summary>See the response</summary><p id="autoText"></p></details>
+    </div>
     <textarea id="mText"></textarea>
     <div class="err" id="mErr"></div>
     <div class="actions">
@@ -331,7 +348,7 @@ const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 const ICON_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></svg>';
 
-let idToken = null;
+let session = null;
 let ideas = [];
 let view = 'ideas';
 
@@ -339,13 +356,26 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- auth ---------- */
-function tokenExp(t){
-  try{ return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000; }
-  catch(e){ return 0; }
+/* One Google sign-in gives a site session that lasts a year, shared by every jettism.com page. */
+function storeToken(t){ try{ localStorage.setItem('jt_session', t); }catch(e){} }
+function readToken(){ try{ return localStorage.getItem('jt_session'); }catch(e){ return null; } }
+function clearToken(){ try{ localStorage.removeItem('jt_session'); sessionStorage.removeItem('jt_idtoken'); }catch(e){} }
+
+async function login(credential){
+  $('lockErr').textContent = 'Signing in…';
+  try{
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'login', idToken: credential }) });
+    const data = await res.json();
+    if (!data.ok){
+      if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+      showLock(data.error === 'not_allowed'
+        ? (data.email || 'That account') + ' isn’t allowed here. Click the button again and pick an approved account.'
+        : 'Sign-in didn’t work. Try again.');
+      return;
+    }
+    session = data.session; storeToken(session); $('lockErr').textContent = ''; start();
+  }catch(e){ showLock('Sign-in didn’t work. Check your connection and try again.'); }
 }
-function storeToken(t){ try{ sessionStorage.setItem('jt_idtoken', t); }catch(e){} }
-function readToken(){ try{ return sessionStorage.getItem('jt_idtoken'); }catch(e){ return null; } }
-function clearToken(){ try{ sessionStorage.removeItem('jt_idtoken'); }catch(e){} }
 
 function showLock(msg){
   $('app').classList.add('hidden');
@@ -361,7 +391,7 @@ function initGoogle(){
   if (!window.google || !google.accounts){ return setTimeout(initGoogle, 150); }
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
-    callback: r => { idToken = r.credential; storeToken(idToken); start(); },
+    callback: r => login(r.credential),
     auto_select: false,
     ux_mode: 'popup'
   });
@@ -369,17 +399,17 @@ function initGoogle(){
 }
 
 function signOut(){
-  clearToken(); idToken = null; ideas = [];
+  if (session) fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'logout', session }) }).catch(() => {}); clearToken(); session = null; ideas = [];
   if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
   showLock('');
 }
 
 /* ---------- api ---------- */
 async function api(action, extra){
-  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ idToken, action }, extra || {})) });
+  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ session, action }, extra || {})) });
   const data = await res.json();
   if (!data.ok){
-    if (data.error === 'signin_required'){ clearToken(); showLock('Your session expired. Sign in again.'); }
+    if (data.error === 'signin_required'){ clearToken(); showLock('You’ve been signed out. Sign in again.'); }
     else if (data.error === 'not_allowed'){ clearToken(); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock((data.email || 'That account') + ' isn’t allowed on this board. Click the button again and pick jettism.contact@gmail.com.'); }
     throw new Error(data.error || 'request_failed');
   }
@@ -434,6 +464,7 @@ function head(i, dateIso){
 function newCard(i){
   return '<article class="card">' + head(i, i.createdAt) +
     (i.hook ? '<p class="hook">' + esc(i.hook) + '</p>' : '') + details(i) +
+    (i.whyNot ? '<details class="whynot"><summary>Why it won’t work</summary><p>' + esc(i.whyNot) + '</p></details>' : '') +
     '<div class="actions">' +
       '<button class="btn good" data-act="good" data-id="' + esc(i.id) + '">' + ICON_CHECK + 'Good idea</button>' +
       '<button class="btn bad" data-act="reject" data-id="' + esc(i.id) + '">' + ICON_X + 'Reject</button>' +
@@ -479,7 +510,7 @@ function doneCard(i){
 function trashCard(i){
   const id = esc(i.id);
   return '<article class="card">' + head(i, i.feedback && i.feedback.at) +
-    (i.feedback && i.feedback.note ? '<div class="note"><b>Why it was rejected</b>' + esc(i.feedback.note) + '</div>' : '') +
+    (i.feedback && i.feedback.note ? '<div class="note"><b>Why it was rejected' + (i.feedback.auto ? '<span class="auto-tag">· auto</span>' : '') + '</b>' + esc(i.feedback.note) + '</div>' : '') +
     (i.hook ? '<p class="hook">' + esc(i.hook) + '</p>' : '') + details(i) +
     '<button class="link-back" data-act="toNew" data-id="' + id + '">Restore to New Ideas</button>' +
     '</article>';
@@ -526,6 +557,12 @@ function openModal(kind, id){
     : 'Why is it a bad idea? Be specific so future ideas avoid the same problem.';
   $('mText').value = '';
   $('mText').placeholder = kind === 'good' ? 'e.g. launch the minecarts 50-100 blocks away so it’s chaotic' : 'e.g. he’d just fly away with his elytra';
+  const canAuto = kind === 'reject' && !!idea.whyNot;
+  $('autoBox').classList.toggle('hidden', !canAuto);
+  $('autoCheck').checked = false;
+  $('autoDetails').open = false;
+  $('autoText').textContent = canAuto ? idea.whyNot : '';
+  syncAuto();
   $('mErr').textContent = '';
   $('mSubmit').disabled = false;
   $('modalBg').classList.remove('hidden');
@@ -533,13 +570,24 @@ function openModal(kind, id){
 }
 function closeModal(){ $('modalBg').classList.add('hidden'); modalCtx = null; }
 
+function syncAuto(){
+  const on = $('autoCheck').checked && !$('autoBox').classList.contains('hidden');
+  $('mText').placeholder = on ? 'Anything to add? (optional)' : (modalCtx && modalCtx.kind === 'good' ? 'e.g. launch the minecarts 50-100 blocks away so it’s chaotic' : 'e.g. he’d just fly away with his elytra');
+  $('mSubmit').textContent = on ? 'Auto reject' : 'Submit';
+  $('mErr').textContent = '';
+}
+$('autoCheck') && $('autoCheck').addEventListener('change', syncAuto);
+
 async function submitModal(){
   if (!modalCtx) return;
-  const note = $('mText').value.trim();
+  const typed = $('mText').value.trim();
+  const auto = modalCtx.kind === 'reject' && $('autoCheck').checked && !$('autoBox').classList.contains('hidden');
+  const idea = ideas.find(i => i.id === modalCtx.id);
+  const note = auto ? (idea.whyNot + (typed ? '\n\nAlso: ' + typed : '')) : typed;
   if (modalCtx.kind === 'reject' && !note){ $('mErr').textContent = 'Add a reason so the generator can learn from it.'; return; }
   $('mSubmit').disabled = true;
   try{
-    const data = await api('feedback', { id: modalCtx.id, verdict: modalCtx.kind === 'good' ? 'good' : 'reject', note });
+    const data = await api('feedback', { id: modalCtx.id, verdict: modalCtx.kind === 'good' ? 'good' : 'reject', note, auto });
     ideas = data.ideas; closeModal(); render();
     toast('Saved');
   }catch(e){
@@ -616,8 +664,8 @@ document.addEventListener('keydown', e => {
 
 /* ---------- boot ---------- */
 (function boot(){
-  const t = readToken();
-  if (t && tokenExp(t) > Date.now() + 60000){ idToken = t; start(); }
+  session = readToken();
+  if (session) start();
   initGoogle();
 })();
 </script>

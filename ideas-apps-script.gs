@@ -24,8 +24,16 @@ function doPost(e) {
   try { req = JSON.parse(e.postData.contents); }
   catch (err) { return out({ ok: false, error: 'bad_request' }); }
 
-  const who = verify(req.idToken);
-  if (!who.ok) return out({ ok: false, error: who.error });
+  // Sign in once with Google, then use a long-lived site session (stays signed in for a year).
+  if (req.action === 'login') {
+    const g = verify(req.idToken);
+    if (!g.ok) return out({ ok: false, error: g.error, email: g.email });
+    return out({ ok: true, email: g.email, session: createSession(g.email) });
+  }
+  if (req.action === 'logout') { if (req.session) endSession(req.session); return out({ ok: true }); }
+
+  const who = req.session ? checkSession(req.session) : verify(req.idToken);
+  if (!who.ok) return out({ ok: false, error: who.error, email: who.email });
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -46,7 +54,7 @@ function doPost(e) {
       case 'feedback': {             // good -> In Progress, reject -> trash
         const note = String(req.note || '').slice(0, 4000);
         if (req.verdict === 'reject' && !note.trim()) return out({ ok: false, error: 'reason_required' });
-        idea.feedback = { verdict: req.verdict === 'good' ? 'good' : 'reject', note, at: now, by: who.email };
+        idea.feedback = { verdict: req.verdict === 'good' ? 'good' : 'reject', note, at: now, by: who.email, auto: !!req.auto };
         idea.status = idea.feedback.verdict === 'good' ? 'progress' : 'rejected';
         if (idea.status === 'progress') idea.progress = idea.progress || { editor: '', recorded: false, sentToEditor: false, notes: '' };
         break;
@@ -308,6 +316,39 @@ function verify(idToken) {
   return { ok: true, email };
 }
 
+/* ---------- long-lived sessions ---------- */
+
+const SESSION_DAYS = 365;
+
+function sessKey(token) {
+  return 'sess_' + Utilities.base64EncodeWebSafe(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token)).slice(0, 43);
+}
+
+function createSession(email) {
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(sessKey(token), JSON.stringify({ email, exp: Date.now() + SESSION_DAYS * 864e5 }));
+  return token;
+}
+
+function checkSession(token) {
+  const props = PropertiesService.getScriptProperties();
+  const key = sessKey(String(token));
+  const raw = props.getProperty(key);
+  if (!raw) return { ok: false, error: 'signin_required' };
+  const s = JSON.parse(raw);
+  if (s.exp < Date.now()) { props.deleteProperty(key); return { ok: false, error: 'signin_required' }; }
+  if (allowedEmails().indexOf(s.email) === -1) { props.deleteProperty(key); return { ok: false, error: 'not_allowed', email: s.email }; }
+  // keep active people signed in: push the expiry out again if it's under 300 days away
+  if (s.exp - Date.now() < 300 * 864e5) { s.exp = Date.now() + SESSION_DAYS * 864e5; props.setProperty(key, JSON.stringify(s)); }
+  return { ok: true, email: s.email };
+}
+
+function endSession(token) {
+  PropertiesService.getScriptProperties().deleteProperty(sessKey(String(token)));
+}
+
 function allowedEmails() {
   const cache = CacheService.getScriptCache();
   const hit = cache.get('allowed_emails');
@@ -371,7 +412,8 @@ function importInbox(board) {
         defenses: raw.defenses || '',
         setupTime: raw.setupTime || '',
         ifFails: raw.ifFails || '',
-        risk: raw.risk || ''
+        risk: raw.risk || '',
+        whyNot: raw.whyNot || ''
       });
     });
     file.setTrashed(true);

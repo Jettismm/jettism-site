@@ -243,7 +243,7 @@ const ICON_BOOKMARK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor
 const ICON_HIDE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="m2 2 20 20"/></svg>';
 const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
 
-let idToken = null, thumbs = [], notepad = '', view = 'main';
+let session = null, thumbs = [], notepad = '', view = 'main';
 let current = null, revealed = false;
 
 const $ = id => document.getElementById(id);
@@ -251,24 +251,40 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const img = id => 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/hqdefault.jpg';
 
 /* ---------- auth (same sign-in as the Idea Board) ---------- */
-function tokenExp(t){ try{ return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp * 1000; }catch(e){ return 0; } }
-function storeToken(t){ try{ sessionStorage.setItem('jt_idtoken', t); }catch(e){} }
-function readToken(){ try{ return sessionStorage.getItem('jt_idtoken'); }catch(e){ return null; } }
-function clearToken(){ try{ sessionStorage.removeItem('jt_idtoken'); }catch(e){} }
+/* One Google sign-in gives a site session that lasts a year, shared by every jettism.com page. */
+function storeToken(t){ try{ localStorage.setItem('jt_session', t); }catch(e){} }
+function readToken(){ try{ return localStorage.getItem('jt_session'); }catch(e){ return null; } }
+function clearToken(){ try{ localStorage.removeItem('jt_session'); sessionStorage.removeItem('jt_idtoken'); }catch(e){} }
+
+async function login(credential){
+  $('lockErr').textContent = 'Signing in…';
+  try{
+    const res = await fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'login', idToken: credential }) });
+    const data = await res.json();
+    if (!data.ok){
+      if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+      showLock(data.error === 'not_allowed'
+        ? (data.email || 'That account') + ' isn’t allowed here. Click the button again and pick an approved account.'
+        : 'Sign-in didn’t work. Try again.');
+      return;
+    }
+    session = data.session; storeToken(session); $('lockErr').textContent = ''; start();
+  }catch(e){ showLock('Sign-in didn’t work. Check your connection and try again.'); }
+}
 function showLock(msg){ $('app').classList.add('hidden'); $('lock').classList.remove('hidden'); $('lockErr').textContent = msg || ''; }
 
 function initGoogle(){
   if (!window.google || !google.accounts){ return setTimeout(initGoogle, 150); }
-  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: r => { idToken = r.credential; storeToken(idToken); start(); }, auto_select:false, ux_mode:'popup' });
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: r => login(r.credential), auto_select:false, ux_mode:'popup' });
   google.accounts.id.renderButton($('gbtn'), { theme:'filled_black', size:'large', shape:'pill', text:'signin_with', width:260 });
 }
-function signOut(){ clearToken(); idToken = null; if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock(''); }
+function signOut(){ if (session) fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'logout', session }) }).catch(() => {}); clearToken(); session = null; if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock(''); }
 
 async function api(action, extra){
-  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ idToken, action }, extra || {})) });
+  const res = await fetch(API_URL, { method:'POST', body: JSON.stringify(Object.assign({ session, action }, extra || {})) });
   const data = await res.json();
   if (!data.ok){
-    if (data.error === 'signin_required'){ clearToken(); showLock('Your session expired. Sign in again.'); }
+    if (data.error === 'signin_required'){ clearToken(); showLock('You’ve been signed out. Sign in again.'); }
     else if (data.error === 'not_allowed'){ clearToken(); if (window.google && google.accounts) google.accounts.id.disableAutoSelect(); showLock((data.email || 'That account') + ' isn’t allowed here. Click the button again and pick an approved account.'); }
     throw new Error(data.error || 'request_failed');
   }
@@ -485,8 +501,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHide();
 window.addEventListener('beforeunload', e => { if (noteDirty || pending){ e.preventDefault(); e.returnValue = ''; } });
 
 (function boot(){
-  const t = readToken();
-  if (t && tokenExp(t) > Date.now() + 60000){ idToken = t; start(); }
+  session = readToken();
+  if (session) start();
   initGoogle();
 })();
 </script>
