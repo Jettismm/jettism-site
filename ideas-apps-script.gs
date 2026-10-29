@@ -401,7 +401,7 @@ function importInbox(board) {
       if (seen[id]) {
         // Backfill a "Why it won't work" critique onto an idea that's already on the board.
         const old = board.ideas.find(i => i.id === id);
-        if (old && raw.whyNot && !old.whyNot) old.whyNot = raw.whyNot;
+        if (old && raw.whyNot) old.whyNot = raw.whyNot;
         return;
       }
       seen[id] = true;
