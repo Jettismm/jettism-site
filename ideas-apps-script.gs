@@ -398,7 +398,12 @@ function importInbox(board) {
     const batchAt = data.generatedAt || file.getDateCreated().toISOString();
     list.forEach((raw, n) => {
       const id = raw.id || ('i' + file.getDateCreated().getTime().toString(36) + n);
-      if (seen[id]) return;
+      if (seen[id]) {
+        // Backfill a "Why it won't work" critique onto an idea that's already on the board.
+        const old = board.ideas.find(i => i.id === id);
+        if (old && raw.whyNot && !old.whyNot) old.whyNot = raw.whyNot;
+        return;
+      }
       seen[id] = true;
       board.ideas.push({
         id,
