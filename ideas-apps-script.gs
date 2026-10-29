@@ -18,6 +18,7 @@ const CLIENT_ID = '527398886152-lraqu16t3ftnb9fqlgjf0givm9bs1s2v.apps.googleuser
 const FOLDER_ID = '1LTfMhKHx4Osf4i4TLzDalJRJd45Ih9mC';
 const INBOX_ID  = '1RNMV62XDc8OZwZivcrTy0ifqTtWEY4z6';
 const THUMBS_INBOX_ID = '19vMTZvOrjO4fA25kbr8-R4lqq3GgEAjD';
+const RESEARCH_ID = '1mN6IaUDVlGxeNLoxUZRlPmgI10oQiqri'; // Video Ideas Vault / Research Screenshots
 
 function doPost(e) {
   let req;
@@ -30,6 +31,8 @@ function doPost(e) {
     if (!g.ok) return out({ ok: false, error: g.error, email: g.email });
     return out({ ok: true, email: g.email, session: createSession(g.email) });
   }
+  // The idea agent uploads research screenshots with a private key kept in Script Properties (UPLOAD_KEY).
+  if (req.action === 'vault.upload') return vaultUpload(req);
   if (req.action === 'logout') { if (req.session) endSession(req.session); return out({ ok: true }); }
 
   const who = req.session ? checkSession(req.session) : verify(req.idToken);
@@ -445,4 +448,31 @@ function authorize() {
   DriveApp.getFolderById(FOLDER_ID).getName();
   YouTube.Videos.list('statistics', { id: 'dQw4w9WgXcQ' });
   UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=x', { muteHttpExceptions: true });
+}
+
+
+/* ---------- Research screenshots (idea agent uploads) ---------- */
+function vaultUpload(req) {
+  const key = PropertiesService.getScriptProperties().getProperty('UPLOAD_KEY');
+  if (!key || req.key !== key) return out({ ok: false, error: 'forbidden' });
+  const folderName = String(req.folder || '');
+  const name = String(req.name || '').replace(/[\/\\]/g, '-').slice(0, 120);
+  if (!/^\d{4}-\d{2}-\d{2} \d{4}$/.test(folderName)) return out({ ok: false, error: 'bad_folder' });
+  if (!/\.(jpe?g|png|md)$/i.test(name)) return out({ ok: false, error: 'bad_name' });
+  const bytes = Utilities.base64Decode(String(req.data || ''));
+  if (!bytes.length || bytes.length > 4000000) return out({ ok: false, error: 'bad_size' });
+  const mime = /\.md$/i.test(name) ? 'text/markdown' : /\.png$/i.test(name) ? 'image/png' : 'image/jpeg';
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const root = DriveApp.getFolderById(RESEARCH_ID);
+    const it = root.getFoldersByName(folderName);
+    const folder = it.hasNext() ? it.next() : root.createFolder(folderName);
+    const old = folder.getFilesByName(name);
+    while (old.hasNext()) old.next().setTrashed(true);
+    const f = folder.createFile(Utilities.newBlob(bytes, mime, name));
+    return out({ ok: true, id: f.getId(), folderId: folder.getId() });
+  } finally {
+    lock.releaseLock();
+  }
 }
