@@ -418,7 +418,13 @@ function importInbox(board) {
         setupTime: raw.setupTime || '',
         ifFails: raw.ifFails || '',
         risk: raw.risk || '',
-        whyNot: raw.whyNot || ''
+        whyNot: raw.whyNot || '',
+        // Second channel (stream segments) uses a few extra fields.
+        channel: raw.channel === 'second' ? 'second' : 'main',
+        category: raw.category || '',
+        clips: Array.isArray(raw.clips) ? raw.clips : (raw.clips ? [String(raw.clips)] : []),
+        length: raw.length || '',
+        fun: raw.fun || ''
       });
     });
     file.setTrashed(true);

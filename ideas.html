@@ -133,6 +133,9 @@
     padding:3px 7px; border-radius:6px; border:1px solid;
   }
   .tag.trap{ color:#ff9a9c; border-color:rgba(237,66,69,.35); background:rgba(237,66,69,.1); }
+  .tag.cat{ color:#aab2ff; border-color:rgba(88,101,242,.4); background:rgba(88,101,242,.12); }
+  .tag.ch2{ color:var(--text-mid); border-color:var(--line-hi); background:rgba(255,255,255,.04); }
+  .detail ul{ margin:0; padding-left:18px; }
   .tag.ragebait{ color:var(--gold); border-color:rgba(240,237,106,.3); background:rgba(240,237,106,.08); }
   .card-date{ margin-left:auto; font-size:11.5px; color:var(--text-lo); }
   .title{ font-size:15px; font-weight:700; line-height:1.35; margin:0; }
@@ -277,7 +280,7 @@
     <div class="brand">
       <img src="jettismicontransparent.png" alt="">
       <div>
-        <p class="eyebrow">Jettism · Main channel</p>
+        <p class="eyebrow" id="eyebrow">Jettism · Main channel</p>
         <h1 id="viewTitle">Idea Board</h1>
       </div>
     </div>
@@ -288,6 +291,10 @@
     <button id="tabIdeas" class="active" title="Idea board" aria-label="Idea board">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
       <span class="badge hidden" id="newBadge"></span>
+    </button>
+    <button id="tabSecond" title="Second channel stream ideas" aria-label="Second channel stream ideas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49"/><path d="M7.76 16.24a6 6 0 0 1 0-8.49"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>
+      <span class="badge hidden" id="secondBadge"></span>
     </button>
     <button id="tabTrash" title="Rejected ideas" aria-label="Rejected ideas">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
@@ -350,7 +357,9 @@ const ICON_FLAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 
 let session = null;
 let ideas = [];
-let view = 'ideas';
+let view = 'ideas';   // ideas | trash
+let channel = 'main'; // main | second
+const chOf = i => i.channel === 'second' ? 'second' : 'main';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -444,10 +453,14 @@ function fmtDate(iso){
 
 function details(i){
   const rows = [];
-  if (i.how && i.how.length) rows.push('<div><b>How it works</b><ol>' + i.how.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol></div>');
+  const two = chOf(i) === 'second';
+  if (two && i.clips && i.clips.length) rows.push('<div><b>Clip moments</b><ul>' + i.clips.map(s => '<li>' + esc(s) + '</li>').join('') + '</ul></div>');
+  if (two && i.length) rows.push('<div><b>Segment length</b><p>' + esc(i.length) + '</p></div>');
+  if (two && i.fun) rows.push('<div><b>Why it’s fun for you</b><p>' + esc(i.fun) + '</p></div>');
+  if (i.how && i.how.length) rows.push('<div><b>' + (two ? 'How the segment runs' : 'How it works') + '</b><ol>' + i.how.map(s => '<li>' + esc(s) + '</li>').join('') + '</ol></div>');
   if (i.defenses) rows.push('<div><b>Beating DrDonut’s defenses</b><p>' + esc(i.defenses) + '</p></div>');
-  if (i.setupTime) rows.push('<div><b>Setup time</b><p>' + esc(i.setupTime) + '</p></div>');
-  if (i.ifFails) rows.push('<div><b>If it fails</b><p>' + esc(i.ifFails) + '</p></div>');
+  if (i.setupTime) rows.push('<div><b>' + (two ? 'What you need' : 'Setup time') + '</b><p>' + esc(i.setupTime) + '</p></div>');
+  if (i.ifFails) rows.push('<div><b>' + (two ? 'If it goes wrong' : 'If it fails') + '</b><p>' + esc(i.ifFails) + '</p></div>');
   if (i.risk) rows.push('<div><b>Biggest risk</b><p>' + esc(i.risk) + '</p></div>');
   if (!rows.length) return '';
   return '<details><summary>Details</summary><div class="detail">' + rows.join('') + '</div></details>';
@@ -455,7 +468,8 @@ function details(i){
 
 function head(i, dateIso){
   const t = (i.type || '').toLowerCase();
-  const tag = (t === 'trap' || t === 'ragebait') ? '<span class="tag ' + t + '">' + (t === 'trap' ? 'Trap' : 'Ragebait') + '</span>' : '';
+  let tag = (t === 'trap' || t === 'ragebait') ? '<span class="tag ' + t + '">' + (t === 'trap' ? 'Trap' : 'Ragebait') + '</span>' : '';
+  if (chOf(i) === 'second') tag = (i.category ? '<span class="tag cat">' + esc(i.category) + '</span>' : '') + (view === 'trash' ? '<span class="tag ch2">Second channel</span>' : '');
   return '<div class="card-top">' + tag + '<span class="card-date">' + esc(fmtDate(dateIso)) + '</span></div>' +
          '<h3 class="title">' + esc(i.title) + '</h3>' +
          (i.altTitle ? '<p class="alt">Alt: ' + esc(i.altTitle) + '</p>' : '');
@@ -480,7 +494,7 @@ function progCard(i){
     '<div class="fields">' +
       '<div class="field"><label>Editor</label><input type="text" data-field="editor" data-id="' + id + '" value="' + esc(p.editor) + '" placeholder="Who’s editing?"></div>' +
       '<div class="toggles">' +
-        '<label class="toggle"><input type="checkbox" data-field="recorded" data-id="' + id + '"' + (p.recorded ? ' checked' : '') + '><span class="box">' + ICON_CHECK + '</span>Recorded</label>' +
+        '<label class="toggle"><input type="checkbox" data-field="recorded" data-id="' + id + '"' + (p.recorded ? ' checked' : '') + '><span class="box">' + ICON_CHECK + '</span>' + (chOf(i) === 'second' ? 'Streamed' : 'Recorded') + '</label>' +
         '<label class="toggle"><input type="checkbox" data-field="sentToEditor" data-id="' + id + '"' + (p.sentToEditor ? ' checked' : '') + '><span class="box">' + ICON_CHECK + '</span>Sent to editor</label>' +
       '</div>' +
       '<div class="field"><label>Notes</label><textarea rows="2" data-field="notes" data-id="' + id + '" placeholder="Anything to remember">' + esc(p.notes) + '</textarea></div>' +
@@ -499,7 +513,7 @@ function doneCard(i){
     (meta ? '<div class="alt" style="margin:0">' + meta + '</div>' : '') +
     details(i) +
     '<div class="fields">' +
-      '<div class="field"><label>Video link</label><input type="text" data-field="link" data-id="' + id + '" value="' + esc(p.link) + '" placeholder="Paste the Short’s URL"></div>' +
+      '<div class="field"><label>Video link</label><input type="text" data-field="link" data-id="' + id + '" value="' + esc(p.link) + '" placeholder="' + (chOf(i) === 'second' ? 'Paste the video’s URL' : 'Paste the Short’s URL') + '"></div>' +
       '<div class="field"><label>Views</label><input type="text" data-field="views" data-id="' + id + '" value="' + esc(p.views) + '" placeholder="e.g. 12M"></div>' +
       '<div class="saved" data-saved="' + id + '"></div>' +
     '</div>' +
@@ -519,31 +533,41 @@ function trashCard(i){
 function byDate(key){ return (a, b) => String(b[key] || b.createdAt || '').localeCompare(String(a[key] || a.createdAt || '')); }
 
 function render(){
-  const n = ideas.filter(i => i.status === 'new').sort(byDate('createdAt'));
-  const p = ideas.filter(i => i.status === 'progress').sort(byDate('updatedAt'));
-  const d = ideas.filter(i => i.status === 'finished').sort(byDate('finishedAt'));
+  const mine = ideas.filter(i => chOf(i) === channel);
+  const n = mine.filter(i => i.status === 'new').sort(byDate('createdAt'));
+  const p = mine.filter(i => i.status === 'progress').sort(byDate('updatedAt'));
+  const d = mine.filter(i => i.status === 'finished').sort(byDate('finishedAt'));
   const r = ideas.filter(i => i.status === 'rejected').sort(byDate('updatedAt'));
+  const two = channel === 'second';
 
   $('cNew').textContent = n.length; $('cProg').textContent = p.length; $('cDone').textContent = d.length;
-  $('listNew').innerHTML = n.length ? n.map(newCard).join('') : '<div class="empty">No new ideas right now.<br>A fresh batch shows up every 6 hours.</div>';
+  $('listNew').innerHTML = n.length ? n.map(newCard).join('') : '<div class="empty">' + (two ? 'No stream ideas right now.' : 'No new ideas right now.') + '<br>A fresh batch shows up every 6 hours.</div>';
   $('listProg').innerHTML = p.length ? p.map(progCard).join('') : '<div class="empty">Mark an idea as good to start working on it.</div>';
-  $('listDone').innerHTML = d.length ? d.map(doneCard).join('') : '<div class="empty">Finished Shorts land here.</div>';
+  $('listDone').innerHTML = d.length ? d.map(doneCard).join('') : '<div class="empty">' + (two ? 'Finished stream segments land here.' : 'Finished Shorts land here.') + '</div>';
   $('listTrash').innerHTML = r.length ? r.map(trashCard).join('') : '<div class="empty">Nothing rejected yet.</div>';
   $('trashCount').textContent = r.length + (r.length === 1 ? ' idea' : ' ideas');
 
-  const badge = $('newBadge');
-  badge.textContent = n.length; badge.classList.toggle('hidden', !n.length || view === 'ideas');
+  const newOf = c => ideas.filter(i => i.status === 'new' && chOf(i) === c).length;
+  [['newBadge', 'main'], ['secondBadge', 'second']].forEach(([bid, c]) => {
+    const k = newOf(c), b = $(bid);
+    b.textContent = k; b.classList.toggle('hidden', !k || (view === 'ideas' && channel === c));
+  });
+  $('eyebrow').textContent = view === 'trash' ? 'Jettism · Both channels' : (two ? 'JettismToo · Second channel' : 'Jettism · Main channel');
 
   $('boardView').classList.toggle('hidden', view !== 'ideas');
   $('trashView').classList.toggle('hidden', view !== 'trash');
-  $('viewTitle').textContent = view === 'ideas' ? 'Idea Board' : 'Rejected Ideas';
+  $('viewTitle').textContent = view === 'ideas' ? (two ? 'Stream Ideas' : 'Idea Board') : 'Rejected Ideas';
 }
 
-function setView(v){
+function setView(v, ch){
   view = v;
-  $('tabIdeas').classList.toggle('active', v === 'ideas');
+  if (ch) channel = ch;
+  try{ localStorage.setItem('jt_board_channel', channel); }catch(e){}
+  $('tabIdeas').classList.toggle('active', v === 'ideas' && channel === 'main');
+  $('tabSecond').classList.toggle('active', v === 'ideas' && channel === 'second');
   $('tabTrash').classList.toggle('active', v === 'trash');
   render();
+  window.scrollTo(0, 0);
 }
 
 /* ---------- actions ---------- */
@@ -553,10 +577,10 @@ function openModal(kind, id){
   modalCtx = { kind, id };
   $('mTitle').textContent = kind === 'good' ? 'Good idea' : 'Reject idea';
   $('mSub').textContent = kind === 'good'
-    ? 'How can it be better? This moves “' + idea.title + '” to In Progress and teaches the idea generator.'
+    ? 'How can it be better? This moves “' + idea.title + '” to In Progress and teaches the ' + (chOf(idea) === 'second' ? 'stream idea' : 'idea') + ' generator.'
     : 'Why is it a bad idea? Be specific so future ideas avoid the same problem.';
   $('mText').value = '';
-  $('mText').placeholder = kind === 'good' ? 'e.g. launch the minecarts 50-100 blocks away so it’s chaotic' : 'e.g. he’d just fly away with his elytra';
+  $('mText').placeholder = hint(kind, idea);
   const canAuto = kind === 'reject' && !!idea.whyNot;
   $('autoBox').classList.toggle('hidden', !canAuto);
   $('autoCheck').checked = false;
@@ -568,11 +592,16 @@ function openModal(kind, id){
   $('modalBg').classList.remove('hidden');
   setTimeout(() => $('mText').focus(), 30);
 }
+function hint(kind, idea){
+  const two = idea && chOf(idea) === 'second';
+  if (kind === 'good') return two ? 'e.g. add a viewer vote halfway through' : 'e.g. launch the minecarts 50-100 blocks away so it’s chaotic';
+  return two ? 'e.g. too much waiting around, nothing to clip' : 'e.g. he’d just fly away with his elytra';
+}
 function closeModal(){ $('modalBg').classList.add('hidden'); modalCtx = null; }
 
 function syncAuto(){
   const on = $('autoCheck').checked && !$('autoBox').classList.contains('hidden');
-  $('mText').placeholder = on ? 'Anything to add? (optional)' : (modalCtx && modalCtx.kind === 'good' ? 'e.g. launch the minecarts 50-100 blocks away so it’s chaotic' : 'e.g. he’d just fly away with his elytra');
+  $('mText').placeholder = on ? 'Anything to add? (optional)' : (modalCtx ? hint(modalCtx.kind, ideas.find(i => i.id === modalCtx.id)) : '');
   $('mSubmit').textContent = on ? 'Auto reject' : 'Submit';
   $('mErr').textContent = '';
 }
@@ -651,7 +680,8 @@ document.addEventListener('change', e => {
   if (e.target.matches('input[type=checkbox][data-field]')) queueField(e.target);
 });
 
-$('tabIdeas').onclick = () => setView('ideas');
+$('tabIdeas').onclick = () => setView('ideas', 'main');
+$('tabSecond').onclick = () => setView('ideas', 'second');
 $('tabTrash').onclick = () => setView('trash');
 $('signOut').onclick = signOut;
 $('mCancel').onclick = closeModal;
@@ -664,6 +694,9 @@ document.addEventListener('keydown', e => {
 
 /* ---------- boot ---------- */
 (function boot(){
+  try{ if (localStorage.getItem('jt_board_channel') === 'second') channel = 'second'; }catch(e){}
+  $('tabIdeas').classList.toggle('active', channel === 'main');
+  $('tabSecond').classList.toggle('active', channel === 'second');
   session = readToken();
   if (session) start();
   initGoogle();
