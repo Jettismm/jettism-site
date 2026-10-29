@@ -424,7 +424,8 @@ function importInbox(board) {
         category: raw.category || '',
         clips: Array.isArray(raw.clips) ? raw.clips : (raw.clips ? [String(raw.clips)] : []),
         length: raw.length || '',
-        fun: raw.fun || ''
+        fun: raw.fun || '',
+        inspiredBy: raw.inspiredBy || ''
       });
     });
     file.setTrashed(true);

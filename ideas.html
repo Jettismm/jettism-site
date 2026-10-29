@@ -462,6 +462,7 @@ function details(i){
   if (i.setupTime) rows.push('<div><b>' + (two ? 'What you need' : 'Setup time') + '</b><p>' + esc(i.setupTime) + '</p></div>');
   if (i.ifFails) rows.push('<div><b>' + (two ? 'If it goes wrong' : 'If it fails') + '</b><p>' + esc(i.ifFails) + '</p></div>');
   if (i.risk) rows.push('<div><b>Biggest risk</b><p>' + esc(i.risk) + '</p></div>');
+  if (i.inspiredBy) rows.push('<div><b>Inspired by</b><p>' + esc(i.inspiredBy) + '</p></div>');
   if (!rows.length) return '';
   return '<details><summary>Details</summary><div class="detail">' + rows.join('') + '</div></details>';
 }
