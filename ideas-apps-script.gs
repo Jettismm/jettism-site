@@ -60,6 +60,25 @@ function doPost(e) {
         break;
       }
 
+      case 'bulkReject': {           // reject many New ideas in one request
+        const items = Array.isArray(req.items) ? req.items.slice(0, 200) : [];
+        if (!items.length) return out({ ok: false, error: 'bad_request' });
+        const todo = [];
+        for (const it of items) {
+          const target = board.ideas.find(i => i.id === it.id);
+          const note = String(it.note || '').slice(0, 4000);
+          if (!target) return out({ ok: false, error: 'not_found' });
+          if (!note.trim()) return out({ ok: false, error: 'reason_required' });
+          todo.push([target, note, !!it.auto]);
+        }
+        todo.forEach(([target, note, auto]) => {
+          target.feedback = { verdict: 'reject', note, at: now, by: who.email, auto };
+          target.status = 'rejected';
+          target.updatedAt = now;
+        });
+        break;
+      }
+
       case 'progress': {             // edit In Progress / Finished fields
         const f = req.fields || {};
         idea.progress = idea.progress || {};
@@ -83,7 +102,7 @@ function doPost(e) {
         return out({ ok: false, error: 'bad_request' });
     }
 
-    if (req.action !== 'list') idea.updatedAt = now;
+    if (idea && req.action !== 'list') idea.updatedAt = now;
     saveBoard(board);
     return out({ ok: true, email: who.email, ideas: board.ideas });
   } finally {

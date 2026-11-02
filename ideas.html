@@ -118,6 +118,20 @@
   .col-head .count{ margin-left:auto; font-size:12px; color:var(--text-lo); font-weight:600;
     background:rgba(255,255,255,0.05); padding:2px 8px; border-radius:10px; }
   .col-list{ display:flex; flex-direction:column; gap:10px; }
+  .sel-btn{ margin-left:8px; background:transparent; border:1px solid var(--line-hi); color:var(--text-mid);
+    padding:3px 9px; border-radius:7px; font-size:11.5px; font-weight:600; cursor:pointer; }
+  .sel-btn:hover{ color:var(--text-hi); border-color:var(--text-lo); }
+  .col-head .count + .sel-btn{ margin-left:8px; }
+  .bulk-bar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:-4px 0 12px;
+    background:#1e1f22; border:1px solid var(--line-hi); border-radius:10px; padding:8px 10px; position:sticky; top:8px; z-index:5; }
+  .bulk-bar .pick-all{ display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; cursor:pointer; user-select:none; }
+  .bulk-bar .sel-count{ font-size:12px; color:var(--text-lo); }
+  .bulk-bar .btn{ flex:0 0 auto; padding:6px 10px; }
+  .bulk-bar .spacer{ flex:1; }
+  .pick{ display:flex; align-items:center; cursor:pointer; }
+  .pick input, .pick-all input{ width:17px; height:17px; accent-color:var(--red); cursor:pointer; margin:0; }
+  .card.selectable{ cursor:pointer; animation:none; }
+  .card.picked{ border-color:rgba(237,66,69,.55); background:#3d3a40; }
   .empty{ color:var(--text-lo); font-size:13px; text-align:center; padding:28px 10px; line-height:1.5; }
 
   .card{
@@ -306,7 +320,14 @@
 
     <div id="boardView" class="board hidden">
       <section class="column">
-        <div class="col-head"><span class="dot" style="background:var(--gold)"></span><h2>New Ideas</h2><span class="count" id="cNew">0</span></div>
+        <div class="col-head"><span class="dot" style="background:var(--gold)"></span><h2>New Ideas</h2><span class="count" id="cNew">0</span><button class="sel-btn" id="selToggle">Select</button></div>
+        <div class="bulk-bar hidden" id="bulkBar">
+          <label class="pick-all"><input type="checkbox" id="pickAll">Select all</label>
+          <span class="sel-count" id="selCount">0 selected</span>
+          <span class="spacer"></span>
+          <button class="btn bad" id="bulkReject" disabled>Reject selected</button>
+          <button class="btn" id="selCancel">Cancel</button>
+        </div>
         <div class="col-list" id="listNew"></div>
       </section>
       <section class="column">
@@ -359,6 +380,8 @@ let session = null;
 let ideas = [];
 let view = 'ideas';   // ideas | trash
 let channel = 'main'; // main | second
+let selecting = false;
+const picked = new Set();
 const chOf = i => i.channel === 'second' ? 'second' : 'main';
 
 const $ = id => document.getElementById(id);
@@ -477,13 +500,16 @@ function head(i, dateIso){
 }
 
 function newCard(i){
-  return '<article class="card">' + head(i, i.createdAt) +
+  const sel = selecting ? '<label class="pick" title="Select"><input type="checkbox" data-pick="' + esc(i.id) + '"' + (picked.has(i.id) ? ' checked' : '') + '></label>' : '';
+  return '<article class="card' + (selecting ? ' selectable' : '') + (picked.has(i.id) ? ' picked' : '') + '"' + (selecting ? ' data-pickcard="' + esc(i.id) + '"' : '') + '>' +
+    (sel ? '<div style="display:flex;gap:10px;align-items:flex-start"><div style="padding-top:2px">' + sel + '</div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:9px">' : '') +
+    head(i, i.createdAt) +
     (i.hook ? '<p class="hook">' + esc(i.hook) + '</p>' : '') + details(i) +
     (i.whyNot ? '<details class="whynot"><summary>Why it won’t work</summary><p>' + esc(i.whyNot) + '</p></details>' : '') +
     '<div class="actions">' +
       '<button class="btn good" data-act="good" data-id="' + esc(i.id) + '">' + ICON_CHECK + 'Good idea</button>' +
       '<button class="btn bad" data-act="reject" data-id="' + esc(i.id) + '">' + ICON_X + 'Reject</button>' +
-    '</div></article>';
+    '</div>' + (sel ? '</div></div>' : '') + '</article>';
 }
 
 function progCard(i){
@@ -541,6 +567,15 @@ function render(){
   const r = ideas.filter(i => i.status === 'rejected').sort(byDate('updatedAt'));
   const two = channel === 'second';
 
+  [...picked].forEach(id => { if (!n.some(i => i.id === id)) picked.delete(id); });
+  if (!n.length) selecting = false;
+  $('selToggle').classList.toggle('hidden', !n.length || selecting);
+  $('bulkBar').classList.toggle('hidden', !selecting);
+  $('selCount').textContent = picked.size + ' selected';
+  $('pickAll').checked = n.length > 0 && picked.size === n.length;
+  $('pickAll').indeterminate = picked.size > 0 && picked.size < n.length;
+  $('bulkReject').disabled = !picked.size;
+  $('bulkReject').innerHTML = ICON_X + (picked.size ? 'Reject ' + picked.size : 'Reject selected');
   $('cNew').textContent = n.length; $('cProg').textContent = p.length; $('cDone').textContent = d.length;
   $('listNew').innerHTML = n.length ? n.map(newCard).join('') : '<div class="empty">' + (two ? 'No stream ideas right now.' : 'No new ideas right now.') + '<br>A fresh batch shows up every 6 hours.</div>';
   $('listProg').innerHTML = p.length ? p.map(progCard).join('') : '<div class="empty">Mark an idea as good to start working on it.</div>';
@@ -562,6 +597,7 @@ function render(){
 
 function setView(v, ch){
   view = v;
+  if (ch && ch !== channel){ selecting = false; picked.clear(); }
   if (ch) channel = ch;
   try{ localStorage.setItem('jt_board_channel', channel); }catch(e){}
   $('tabIdeas').classList.toggle('active', v === 'ideas' && channel === 'main');
@@ -573,6 +609,27 @@ function setView(v, ch){
 
 /* ---------- actions ---------- */
 let modalCtx = null;
+function openBulk(){
+  const list = ideas.filter(i => picked.has(i.id) && i.status === 'new');
+  if (!list.length) return;
+  const withAuto = list.filter(i => i.whyNot).length;
+  modalCtx = { kind: 'bulk', ids: list.map(i => i.id) };
+  $('mTitle').textContent = 'Reject ' + list.length + (list.length === 1 ? ' idea' : ' ideas');
+  $('mSub').textContent = 'Why are these bad ideas? Your reason is saved on every selected idea so future ideas avoid the same problems.';
+  $('mText').value = '';
+  $('autoBox').classList.toggle('hidden', !withAuto);
+  $('autoCheck').checked = withAuto > 0;
+  $('autoDetails').open = false;
+  $('autoText').textContent = withAuto === list.length
+    ? 'Each idea gets its own “Why it won’t work” as the reject reason. Anything you type is added to all of them.'
+    : withAuto + ' of ' + list.length + ' have their own “Why it won’t work”, which they’ll use. The other ' + (list.length - withAuto) + ' use what you type below.';
+  syncAuto();
+  $('mErr').textContent = '';
+  $('mSubmit').disabled = false;
+  $('modalBg').classList.remove('hidden');
+  setTimeout(() => $('mText').focus(), 30);
+}
+
 function openModal(kind, id){
   const idea = ideas.find(i => i.id === id);
   modalCtx = { kind, id };
@@ -602,6 +659,14 @@ function closeModal(){ $('modalBg').classList.add('hidden'); modalCtx = null; }
 
 function syncAuto(){
   const on = $('autoCheck').checked && !$('autoBox').classList.contains('hidden');
+  const bulk = modalCtx && modalCtx.kind === 'bulk';
+  if (bulk){
+    const lacking = modalCtx.ids.filter(id => !(ideas.find(i => i.id === id) || {}).whyNot).length;
+    $('mText').placeholder = on && !lacking ? 'Anything to add to all of them? (optional)' : 'e.g. too much waiting around, nothing to clip';
+    $('mSubmit').textContent = 'Reject ' + modalCtx.ids.length;
+    $('mErr').textContent = '';
+    return;
+  }
   $('mText').placeholder = on ? 'Anything to add? (optional)' : (modalCtx ? hint(modalCtx.kind, ideas.find(i => i.id === modalCtx.id)) : '');
   $('mSubmit').textContent = on ? 'Auto reject' : 'Submit';
   $('mErr').textContent = '';
@@ -611,6 +676,25 @@ $('autoCheck') && $('autoCheck').addEventListener('change', syncAuto);
 async function submitModal(){
   if (!modalCtx) return;
   const typed = $('mText').value.trim();
+  if (modalCtx.kind === 'bulk'){
+    const useAuto = $('autoCheck').checked && !$('autoBox').classList.contains('hidden');
+    const items = modalCtx.ids.map(id => {
+      const idea = ideas.find(i => i.id === id) || {};
+      const auto = useAuto && !!idea.whyNot;
+      return { id, auto, note: auto ? idea.whyNot + (typed ? '\n\nAlso: ' + typed : '') : typed };
+    });
+    if (items.some(it => !it.note)){ $('mErr').textContent = 'Add a reason so the generator can learn from it.'; return; }
+    $('mSubmit').disabled = true;
+    try{
+      const data = await api('bulkReject', { items });
+      ideas = data.ideas; picked.clear(); selecting = false; closeModal(); render();
+      toast('Rejected ' + items.length + (items.length === 1 ? ' idea' : ' ideas'));
+    }catch(e){
+      $('mSubmit').disabled = false;
+      if (e.message !== 'signin_required' && e.message !== 'not_allowed') $('mErr').textContent = 'Couldn’t save. Try again.';
+    }
+    return;
+  }
   const auto = modalCtx.kind === 'reject' && $('autoCheck').checked && !$('autoBox').classList.contains('hidden');
   const idea = ideas.find(i => i.id === modalCtx.id);
   const note = auto ? (idea.whyNot + (typed ? '\n\nAlso: ' + typed : '')) : typed;
@@ -662,7 +746,19 @@ function toast(msg){
   clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add('hidden'), 2200);
 }
 
+function togglePick(id, on){
+  if (on === undefined) on = !picked.has(id);
+  if (on) picked.add(id); else picked.delete(id);
+  render();
+}
+document.addEventListener('change', e => {
+  if (e.target.matches('[data-pick]')) togglePick(e.target.dataset.pick, e.target.checked);
+});
 document.addEventListener('click', e => {
+  if (selecting){
+    const card = e.target.closest('[data-pickcard]');
+    if (card && !e.target.closest('button, a, summary, details, label.pick, input')){ togglePick(card.dataset.pickcard); return; }
+  }
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const id = b.dataset.id;
@@ -685,6 +781,14 @@ $('tabIdeas').onclick = () => setView('ideas', 'main');
 $('tabSecond').onclick = () => setView('ideas', 'second');
 $('tabTrash').onclick = () => setView('trash');
 $('signOut').onclick = signOut;
+$('selToggle').onclick = () => { selecting = true; picked.clear(); render(); };
+$('selCancel').onclick = () => { selecting = false; picked.clear(); render(); };
+$('pickAll').onchange = e => {
+  const n = ideas.filter(i => i.status === 'new' && chOf(i) === channel);
+  picked.clear(); if (e.target.checked) n.forEach(i => picked.add(i.id));
+  render();
+};
+$('bulkReject').onclick = openBulk;
 $('mCancel').onclick = closeModal;
 $('mSubmit').onclick = submitModal;
 $('modalBg').addEventListener('click', e => { if (e.target === $('modalBg')) closeModal(); });
