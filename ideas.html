@@ -388,7 +388,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 /* ---------- auth ---------- */
-/* One Google sign-in gives a site session that lasts a year, shared by every jettism.com page. */
+/* One Google sign-in gives a site session that lasts a year, shared by every jettism.productions page. */
 function storeToken(t){ try{ localStorage.setItem('jt_session', t); }catch(e){} }
 function readToken(){ try{ return localStorage.getItem('jt_session'); }catch(e){ return null; } }
 function clearToken(){ try{ localStorage.removeItem('jt_session'); sessionStorage.removeItem('jt_idtoken'); }catch(e){} }

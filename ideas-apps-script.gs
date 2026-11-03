@@ -110,7 +110,7 @@ function doPost(e) {
   }
 }
 
-/* ---------- thumbnail practice (jettism.com/thumbs) ---------- */
+/* ---------- thumbnail practice (jettism.productions/thumbs) ---------- */
 
 const OWNER_EMAIL = 'jettism.contact@gmail.com';
 const MIN_VIEWS = 50000;      // thumbnails from videos under this many views are never shown
