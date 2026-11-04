@@ -123,8 +123,8 @@ select option,select optgroup{background:var(--panel-solid);color:#fff}
 
   <form id="apply-form" autocomplete="off">
     <div class="hp" aria-hidden="true">
-      <label for="company">Company</label>
-      <input type="text" id="company" name="company" tabindex="-1" autocomplete="off"/>
+      <label for="jx-hp-field">Leave this blank</label>
+      <input type="text" id="jx-hp-field" name="jx_hp_field" tabindex="-1" autocomplete="one-time-code" data-lpignore="true" data-1p-ignore/>
     </div>
 
     <div class="field">
@@ -352,7 +352,7 @@ select option,select optgroup{background:var(--panel-solid);color:#fff}
         bring: $('bring').value,
         standout: $('standout').value,
         payout: $('payout').value,
-        company: $('company').value,      // honeypot, should stay empty
+        company: $('jx-hp-field').value,      // honeypot (renamed so browser autofill never fills it), should stay empty
         device: deviceId()
       };
 
