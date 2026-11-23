@@ -274,6 +274,15 @@ select option,select optgroup{background:var(--panel-solid);color:#fff}
       }
     }
     $('position').addEventListener('change', function(){ applyRole(this.value); });
+    // Links like /apply?position=Clipper open with that role already picked
+    (function(){
+      try {
+        const want = new URLSearchParams(location.search).get('position');
+        if(!want) return;
+        const opt = Array.prototype.find.call($('position').options, function(o){ return o.value === want; });
+        if(opt){ $('position').value = want; applyRole(want); }
+      } catch(e){}
+    })();
 
     // Only one of Yes/No can be checked
     document.querySelectorAll('.mc-check').forEach(function(cb){
