@@ -266,12 +266,12 @@ section{position:relative}
 .opp .beam{position:absolute;left:50%;top:-20%;width:2px;height:60%;transform:translateX(-50%);
   background:linear-gradient(180deg,transparent,var(--cyan),transparent);filter:blur(1px);opacity:.6}
 .h-xxl{font-weight:900;letter-spacing:-.05em;line-height:.86;font-size:clamp(52px,9vw,150px);text-transform:uppercase;margin-top:20px}
-.opp-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin:70px auto 0;border-radius:var(--r-lg);overflow:hidden;
+.opp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:70px auto 0;border-radius:var(--r-lg);overflow:hidden;
   background:var(--line-d);box-shadow:0 0 0 1px var(--line-d)}
 .ostat{padding:30px 20px;text-align:center;background:rgba(5,11,31,.85)}
 .ostat .v{font-size:clamp(30px,3.6vw,50px);font-weight:900;letter-spacing:-.04em}
 .ostat .k{font-size:13px;color:var(--muted-d);margin-top:6px}
-@media(max-width:800px){.opp-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.opp-stats{grid-template-columns:1fr}}
 .marquee{margin-top:80px;display:grid;gap:18px;mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
 .track{display:flex;gap:18px;width:max-content;animation:slide 60s linear infinite}
@@ -283,6 +283,15 @@ section{position:relative}
 .mt img{width:100%;height:100%;object-fit:cover;transform:scale(1.03)}
 .mt span{position:absolute;left:10px;bottom:10px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:999px;background:rgba(3,8,23,.75)}
 @media(max-width:560px){.mt{width:130px;border-radius:14px}}
+
+
+/* ---------- ticker ---------- */
+.ticker{position:relative;z-index:2;overflow:hidden;padding:22px 0;background:linear-gradient(90deg,var(--blue-2),var(--blue) 45%,#2AA8F0);
+  box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 20px 60px -20px rgba(47,107,255,.8)}
+.ticker-track{display:flex;align-items:center;gap:34px;width:max-content;animation:slide 28s linear infinite;
+  font-weight:900;text-transform:uppercase;letter-spacing:-.02em;font-size:clamp(26px,3.4vw,48px);line-height:1;white-space:nowrap}
+.ticker-track i{font-style:normal;font-size:.6em;color:#BFF1FF}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none!important}}
 
 /* ---------- final cta ---------- */
 .final{padding:clamp(110px,13vw,190px) 0;overflow:hidden;text-align:center;
@@ -363,12 +372,16 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
         <div class="up">▲ views on one stream clip</div>
       </div>
       
-      <div class="float f-post"><div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-        <div><b>Clip posted</b><span>Shorts · TikTok · Reels</span></div></div>
+      
     </div>
   </div>
 </section>
 
+
+<!-- ============ TICKER ============ -->
+<div class="ticker" aria-label="Get paid for your views">
+  <div class="ticker-track" aria-hidden="true"><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i></div>
+</div>
 
 <!-- ============ PROOF ============ -->
 <section class="sec dark proof" id="clips">
@@ -398,7 +411,6 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
       <div class="ostat"><div class="v grad mono" data-count="billion">1B+</div><div class="k">views across our content</div></div>
       <div class="ostat"><div class="v grad mono" data-count="short" data-to="16000000">0</div><div class="k">views on one clip</div></div>
       <div class="ostat"><div class="v grad mono">2×</div><div class="k">streams every week</div></div>
-      <div class="ostat"><div class="v grad mono">3</div><div class="k">platforms to post on</div></div>
     </div>
   </div>
   <div class="marquee" aria-hidden="true">
