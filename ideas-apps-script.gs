@@ -24,6 +24,9 @@ function doPost(e) {
   try { req = JSON.parse(e.postData.contents); }
   catch (err) { return out({ ok: false, error: 'bad_request' }); }
 
+  // Visitor tracking from public pages (no sign-in, no lock). See "site analytics" below.
+  if (req.action === 'track') return trackHit(req);
+
   // Sign in once with Google, then use a long-lived site session (stays signed in for a year).
   if (req.action === 'login') {
     const g = verify(req.idToken);
@@ -34,6 +37,11 @@ function doPost(e) {
 
   const who = req.session ? checkSession(req.session) : verify(req.idToken);
   if (!who.ok) return out({ ok: false, error: who.error, email: who.email });
+
+  if (req.action === 'analytics.stats') {
+    if (ANALYTICS_EMAILS.indexOf(who.email) === -1) return out({ ok: false, error: 'not_allowed', email: who.email });
+    return out(analyticsStats(String(req.range || '7d'), who));
+  }
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -464,6 +472,139 @@ function newestFile(folderId, name) {
 
 function out(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ---------- site analytics (jettism.productions/analytics) ---------- */
+
+/**
+ * Public pages send one 'pv' (page view) hit per load and an 'apply' hit after a successful
+ * application. Hits go to the "Visits" tab of the "Jettism Analytics" spreadsheet, which
+ * analyticsSetup() creates in the Idea Board folder. Application totals come straight from
+ * the apply form's sheet. Only ANALYTICS_EMAILS can read the stats.
+ */
+const ANALYTICS_EMAILS = [OWNER_EMAIL];
+const APPLY_SHEET_ID = '1JjT967tcSSxlxImjW8TR_Dql9R54_Br5SEz7AS-Z7uc';
+const ANALYTICS_TZ = 'America/Los_Angeles';
+const RANGES = { '24h': 864e5, '7d': 7 * 864e5, '28d': 28 * 864e5, 'all': 0 };
+
+function trackHit(req) {
+  const type = req.type === 'apply' ? 'apply' : 'pv';
+  const vid = String(req.vid || '').replace(/[^\w-]/g, '').slice(0, 64);
+  if (!vid) return out({ ok: false });
+  const clean = (s, n, re) => String(s || '').toLowerCase().replace(re, '').slice(0, n);
+  let path = String(req.path || '/').slice(0, 80);
+  if (path.charAt(0) !== '/') path = '/';
+  const src = clean(req.src, 40, /[^a-z0-9._-]/g) || 'direct';
+  const ref = clean(req.ref, 80, /[^a-z0-9.-]/g);
+  const dev = req.dev === 'm' ? 'mobile' : 'desktop';
+
+  // light flood protection: at most 60 hits per visitor every 10 minutes
+  const cache = CacheService.getScriptCache();
+  const key = 'trk_' + vid;
+  const n = Number(cache.get(key) || 0);
+  if (n >= 60) return out({ ok: true });
+  cache.put(key, String(n + 1), 600);
+
+  visitsSheet().appendRow([new Date(), type, vid, path, src, ref, dev]);
+  return out({ ok: true });
+}
+
+function visitsSheet() {
+  const props = PropertiesService.getScriptProperties();
+  let id = props.getProperty('ANALYTICS_SHEET_ID');
+  if (id) return SpreadsheetApp.openById(id).getSheetByName('Visits');
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    id = props.getProperty('ANALYTICS_SHEET_ID');
+    if (id) return SpreadsheetApp.openById(id).getSheetByName('Visits');
+    const ss = SpreadsheetApp.create('Jettism Analytics');
+    DriveApp.getFileById(ss.getId()).moveTo(DriveApp.getFolderById(FOLDER_ID));
+    const sh = ss.getSheets()[0].setName('Visits');
+    sh.appendRow(['time', 'type', 'visitor', 'path', 'source', 'referrer', 'device']);
+    sh.setFrozenRows(1);
+    props.setProperty('ANALYTICS_SHEET_ID', ss.getId());
+    return sh;
+  } finally { lock.releaseLock(); }
+}
+
+function analyticsStats(range, who) {
+  if (!(range in RANGES)) range = '7d';
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('an_' + range);
+  if (hit) { const c = JSON.parse(hit); c.email = who.email; return c; }
+
+  const now = Date.now(), span = RANGES[range];
+  const rows = visitsSheet().getDataRange().getValues().slice(1)
+    .map(r => ({ t: new Date(r[0]).getTime(), type: r[1], vid: r[2], path: r[3], src: r[4] || 'direct', dev: r[6] }))
+    .filter(r => !isNaN(r.t));
+  const firstVisit = rows.length ? Math.min.apply(null, rows.map(r => r.t)) : now;
+
+  // applications: every row of the apply form's sheet, by its submitted_at column
+  const asheet = SpreadsheetApp.openById(APPLY_SHEET_ID).getSheets()[0];
+  const avals = asheet.getDataRange().getValues();
+  const col = avals.length ? avals[0].map(String).indexOf('submitted_at') : -1;
+  const apps = col < 0 ? [] : avals.slice(1).map(r => new Date(r[col]).getTime()).filter(t => !isNaN(t) && t <= now + 864e5);
+
+  const start = span ? now - span : Math.min(firstVisit, now);
+  const inR = t => t >= start && t <= now + 6e4;
+
+  // buckets: hours for 24h, days otherwise (weeks if lifetime runs past ~4 months)
+  const fmt = (t, f) => Utilities.formatDate(new Date(t), ANALYTICS_TZ, f);
+  let unit = range === '24h' ? 'hour' : 'day';
+  if (range === 'all' && now - start > 120 * 864e5) unit = 'week';
+  const keyOf = t => unit === 'hour' ? fmt(t, "yyyy-MM-dd'T'HH")
+    : unit === 'day' ? fmt(t, 'yyyy-MM-dd')
+    : fmt(t - ((Number(fmt(t, 'u')) - 1) * 864e5), 'yyyy-MM-dd');   // week = Monday it starts on
+  const step = unit === 'hour' ? 36e5 : 864e5;
+  const keys = [];
+  for (let t = start; t <= now + step; t += step) { const k = keyOf(Math.min(t, now)); if (keys[keys.length - 1] !== k && keys.indexOf(k) === -1) keys.push(k); }
+  const series = {};
+  keys.forEach(k => series[k] = { key: k, v: new Set(), apps: 0 });
+
+  const visitors = new Set(), sources = {}, pages = {}, devices = { mobile: new Set(), desktop: new Set() };
+  let views = 0, applyHits = 0;
+  rows.forEach(r => {
+    if (!inR(r.t)) return;
+    const s = sources[r.src] || (sources[r.src] = { src: r.src, v: new Set(), views: 0, applies: 0 });
+    if (r.type === 'apply') { s.applies++; applyHits++; return; }
+    views++; visitors.add(r.vid); s.v.add(r.vid); s.views++;
+    pages[r.path] = (pages[r.path] || 0) + 1;
+    (devices[r.dev] || devices.desktop).add(r.vid);
+    const b = series[keyOf(r.t)]; if (b) b.v.add(r.vid);
+  });
+  let applications = 0;
+  apps.forEach(t => { if (span && !inR(t)) return; applications++; const b = series[keyOf(t)]; if (b) b.apps++; });   // lifetime counts every application ever
+
+  // previous period of the same length, for the up/down arrows
+  let prev = null;
+  if (span) {
+    const pv = new Set(); let pa = 0;
+    rows.forEach(r => { if (r.type === 'pv' && r.t >= start - span && r.t < start) pv.add(r.vid); });
+    apps.forEach(t => { if (t >= start - span && t < start) pa++; });
+    prev = { visitors: pv.size, applications: pa, tracked: firstVisit < start };
+  }
+
+  const result = {
+    ok: true, range, unit, tz: ANALYTICS_TZ, generatedAt: new Date(now).toISOString(),
+    trackingSince: rows.length ? new Date(firstVisit).toISOString() : null,
+    visitors: visitors.size, views, applications, applyHits, prev,
+    devices: { mobile: devices.mobile.size, desktop: devices.desktop.size },
+    sources: Object.keys(sources).map(k => ({ src: k, visitors: sources[k].v.size, views: sources[k].views, applies: sources[k].applies }))
+      .sort((a, b) => b.visitors - a.visitors || b.applies - a.applies),
+    pages: Object.keys(pages).map(k => ({ path: k, views: pages[k] })).sort((a, b) => b.views - a.views).slice(0, 10),
+    series: keys.map(k => ({ key: k, visitors: series[k].v.size, apps: series[k].apps }))
+  };
+  cache.put('an_' + range, JSON.stringify(result), 60);   // reuse for a minute
+  result.email = who.email;
+  return result;
+}
+
+/** Run once from the editor after adding analytics: grants Sheets access and creates the Visits sheet. */
+function analyticsSetup() {
+  const sh = visitsSheet();
+  SpreadsheetApp.openById(APPLY_SHEET_ID).getName();
+  Logger.log('Analytics sheet ready: ' + sh.getParent().getUrl());
 }
 
 /** Run once from the editor to grant Drive + external request permissions. */

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Analytics — Jettism Productions</title>
+<meta name="theme-color" content="#050B1F">
+<link rel="icon" type="image/png" href="/jettismicontransparent.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --navy-950:#030817; --navy-900:#050B1F; --navy-800:#0A1433;
+  --blue:#2F6BFF; --blue-2:#1E4FE0; --cyan:#3FD8FF;
+  --ink:#fff; --ink-2:#C9D6F5; --muted:#8E9EC6; --line:rgba(150,180,255,.14); --line-2:rgba(150,180,255,.26);
+  --card:rgba(255,255,255,.03); --up:#5CF2B0; --down:#FF9C9C;
+  --ease:cubic-bezier(.2,.7,.1,1);
+  --wrap:min(1180px, calc(100% - 40px));
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+body{font-family:'Geist',system-ui,-apple-system,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh;
+  background:radial-gradient(900px 500px at 80% -10%,rgba(47,107,255,.25),transparent 60%),var(--navy-900);background-attachment:fixed}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+.num{font-variant-numeric:tabular-nums}
+
+.nav{position:sticky;top:0;z-index:20;background:rgba(5,11,31,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);box-shadow:0 1px 0 var(--line)}
+.nav-in{width:var(--wrap);margin:auto;height:64px;display:flex;align-items:center;gap:16px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:.14em;font-size:15px;text-decoration:none}
+.logo img{width:30px}
+.tag{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);padding:4px 9px;border-radius:999px;background:rgba(63,216,255,.1)}
+.who{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-btn{font-size:13px;font-weight:600;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap}
+.link-btn:hover{background:rgba(255,255,255,.06)}
+
+main{width:var(--wrap);margin:auto;padding:36px 0 90px}
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;gap:18px;justify-content:space-between}
+h1{font-size:clamp(34px,4.6vw,56px);font-weight:900;letter-spacing:-.04em;line-height:1;text-transform:uppercase}
+.since{margin-top:8px;color:var(--muted);font-size:14px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;padding:4px;border-radius:999px;background:var(--card);box-shadow:0 0 0 1px var(--line-2) inset}
+.seg button{padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;color:var(--ink-2);transition:background .2s,color .2s}
+.seg button:hover{color:#fff}
+.seg button[aria-pressed=true]{color:#fff;background:linear-gradient(180deg,#4B82FF,var(--blue-2));box-shadow:0 6px 18px -8px rgba(47,107,255,.9)}
+.tabs{display:flex;gap:6px;margin:28px 0 22px;border-bottom:1px solid var(--line)}
+.tabs button{padding:12px 16px;font-size:15px;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:#fff;border-color:var(--cyan)}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.kpi{padding:20px;border-radius:20px;background:var(--card);box-shadow:0 0 0 1px var(--line) inset}
+.kpi .k{font-size:13px;font-weight:600;color:var(--muted)}
+.kpi .v{font-size:clamp(30px,3.4vw,42px);font-weight:900;letter-spacing:-.035em;margin-top:6px;line-height:1.05}
+.kpi .d{font-size:12.5px;font-weight:600;margin-top:6px;color:var(--muted);min-height:18px}
+.kpi .d.up{color:var(--up)} .kpi .d.down{color:var(--down)}
+.kpi.hero{background:linear-gradient(180deg,rgba(47,107,255,.18),rgba(47,107,255,.05));box-shadow:0 0 0 1px rgba(110,160,255,.3) inset}
+
+.grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:14px}
+.card{padding:22px;border-radius:22px;background:var(--card);box-shadow:0 0 0 1px var(--line) inset;min-width:0}
+.card h2{font-size:15px;font-weight:800;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card h2 small{font-size:12.5px;font-weight:500;color:var(--muted)}
+.chart{position:relative;margin-top:14px;user-select:none}
+.chart svg{display:block;width:100%;overflow:visible}
+.chart .axis{font-size:11px;fill:var(--muted)}
+.tip{position:absolute;pointer-events:none;padding:8px 11px;border-radius:10px;font-size:12.5px;white-space:nowrap;transform:translate(-50%,-110%);
+  background:#0D1A44;box-shadow:0 0 0 1px var(--line-2),0 10px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .12s}
+.tip b{display:block;font-size:15px}
+.tip span{color:var(--muted)}
+
+.srcs{display:grid;gap:4px;margin-top:12px}
+.src{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;padding:10px 8px;border-radius:12px}
+.src:hover{background:rgba(255,255,255,.03)}
+.src .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:rgba(150,180,255,.1);color:var(--ink-2)}
+.src .ic svg{width:15px;height:15px}
+.src .nm{font-size:14.5px;font-weight:600;min-width:0}
+.src .nm small{display:block;font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar{height:6px;border-radius:999px;background:rgba(150,180,255,.1);margin-top:7px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--cyan));width:0;transition:width .8s var(--ease)}
+.src .ct{text-align:right;font-size:15px;font-weight:800}
+.src .ct small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+
+table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+th{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:right;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th button{font-size:inherit;font-weight:inherit;letter-spacing:inherit;color:inherit;text-transform:inherit}
+th button:hover,th button[data-on]{color:#fff}
+td{padding:12px;text-align:right;border-bottom:1px solid var(--line)}
+td .srcname{display:flex;align-items:center;gap:10px;font-weight:600}
+tr:last-child td{border-bottom:0}
+.share{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.share button{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;font-size:13.5px;font-weight:600;background:rgba(47,107,255,.1);box-shadow:0 0 0 1px rgba(110,160,255,.25) inset}
+.share button:hover{background:rgba(47,107,255,.18)}
+.share code{font:600 12.5px ui-monospace,monospace;color:var(--cyan)}
+.note{margin-top:12px;font-size:13.5px;color:var(--muted);line-height:1.6}
+.pages div{display:flex;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-size:14px}
+.pages div:last-child{border-bottom:0}
+.pages code{font:600 13px ui-monospace,monospace;color:var(--ink-2)}
+.devs{display:flex;gap:10px;margin-top:14px}
+.devs div{flex:1;padding:14px;border-radius:14px;background:rgba(150,180,255,.06)}
+.devs b{display:block;font-size:22px;font-weight:900}
+.devs span{font-size:12.5px;color:var(--muted)}
+.toggle{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-2);cursor:pointer;margin-top:22px}
+.toggle input{width:18px;height:18px;accent-color:var(--blue)}
+.empty{padding:26px;text-align:center;color:var(--muted);font-size:14px}
+.banner{margin-top:18px;padding:14px 18px;border-radius:14px;font-size:14px;line-height:1.55;color:#FFE7A6;background:rgba(255,214,107,.08);box-shadow:0 0 0 1px rgba(255,214,107,.28) inset}
+.loading{opacity:.45;transition:opacity .2s}
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;
+  background:#0D1A44;box-shadow:0 0 0 1px var(--line-2),0 10px 30px rgba(0,0,0,.5);transition:opacity .2s}
+
+/* lock */
+.lock{min-height:calc(100vh - 64px);display:grid;place-items:center;text-align:center;padding:20px}
+.lock h1{font-size:clamp(36px,6vw,64px)}
+.lock p{margin:14px auto 26px;color:var(--muted);max-width:360px}
+#gbtn{display:inline-block;min-height:44px}
+#lockErr{margin-top:16px;font-size:14px;color:var(--down);min-height:20px}
+
+@media(max-width:900px){.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+@media(max-width:560px){.seg button{padding:8px 11px;font-size:13px}.kpi{padding:16px}.card{padding:16px}
+  th:nth-child(3),td:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<header class="nav">
+  <div class="nav-in">
+    <a href="/" class="logo"><img src="/crown.png" alt="" width="30" height="15">JETTISM</a>
+    <span class="tag">Analytics</span>
+    <span class="who" id="who"></span>
+    <button class="link-btn" id="signout" hidden>Sign out</button>
+  </div>
+</header>
+
+<section class="lock" id="lock">
+  <div>
+    <h1>Analytics</h1>
+    <p>Private. Sign in with the Jettism Google account to see visitors, applications and where people found the site.</p>
+    <div id="gbtn"></div>
+    <div id="lockErr"></div>
+  </div>
+</section>
+
+<main id="app" hidden>
+  <div class="head">
+    <div>
+      <h1>Analytics</h1>
+      <div class="since" id="since"></div>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Time range" id="ranges">
+        <button data-r="24h">24 hours</button><button data-r="7d">7 days</button><button data-r="28d">28 days</button><button data-r="all">Lifetime</button>
+      </div>
+      <button class="link-btn" id="refresh" title="Refresh">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="banner" id="banner" hidden></div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+    <button role="tab" data-tab="sources" aria-selected="false">Where they found it</button>
+  </nav>
+
+  <div id="body">
+    <!-- overview -->
+    <section id="tab-overview">
+      <div class="kpis">
+        <div class="kpi hero"><div class="k">Visitors</div><div class="v num" id="k-vis">–</div><div class="d" id="d-vis"></div></div>
+        <div class="kpi hero"><div class="k">People applied</div><div class="v num" id="k-app">–</div><div class="d" id="d-app"></div></div>
+        <div class="kpi"><div class="k">Page views</div><div class="v num" id="k-pv">–</div><div class="d" id="d-pv"></div></div>
+        <div class="kpi"><div class="k">Visitors who applied</div><div class="v num" id="k-rate">–</div><div class="d" id="d-rate"></div></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Visitors <small id="unit1"></small></h2>
+          <div class="chart" id="c-vis"></div>
+          <h2 style="margin-top:22px">Applications <small id="unit2"></small></h2>
+          <div class="chart" id="c-app"></div>
+        </div>
+        <div class="card">
+          <h2>Where they found it <small><button class="link-btn" data-goto="sources" style="padding:4px 8px">See all →</button></small></h2>
+          <div class="srcs" id="topsrc"></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h2>Top pages <small>page views</small></h2>
+          <div class="pages" id="pages"></div>
+        </div>
+        <div class="card">
+          <h2>Devices <small>visitors</small></h2>
+          <div class="devs"><div><b class="num" id="dv-m">–</b><span>Phone</span></div><div><b class="num" id="dv-d">–</b><span>Computer</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- sources -->
+    <section id="tab-sources" hidden>
+      <div class="card">
+        <h2>Where visitors came from <small id="srcRange"></small></h2>
+        <table>
+          <thead><tr>
+            <th>Source</th>
+            <th><button data-sort="visitors" data-on>Visitors</button></th>
+            <th><button data-sort="views">Page views</button></th>
+            <th><button data-sort="applies">Applied</button></th>
+            <th><button data-sort="share">% of visitors</button></th>
+          </tr></thead>
+          <tbody id="srcTable"></tbody>
+        </table>
+        <p class="note"><b>Direct</b> means the browser didn't say where the click came from: someone typed the link, used a bookmark, or tapped it inside an app like the Discord app, iMessage or Instagram DMs. <b>Applied</b> counts applications sent from this site since tracking started, so it can be lower than the "People applied" total.</p>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <h2>Share links that always get labeled</h2>
+        <p class="note" style="margin-top:8px">Apps like Discord often hide where a click came from. Post these instead and every visit gets counted under the right source. Tap to copy.</p>
+        <div class="share" id="share"></div>
+      </div>
+    </section>
+  </div>
+
+  <label class="toggle"><input type="checkbox" id="notrack"> Don't count my own visits on this browser</label>
+</main>
+<div class="toast" id="toast" style="opacity:0"></div>
+
+<script>
+const GOOGLE_CLIENT_ID = '527398886152-lraqu16t3ftnb9fqlgjf0givm9bs1s2v.apps.googleusercontent.com';
+const API_URL = 'https://script.google.com/macros/s/AKfycbyptp2MjQ9GkoG1M0LLWY0zJlYWbma1pkAwtEGVNSYctJoQpH0SR2YVj5h_oxZm6LXH/exec';
+const SITE = 'jettism.productions';
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n || 0).toLocaleString('en-US');
+const ls = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } };
+
+let session = ls('jt_session'), range = ls('jx_an_range') || '7d', tab = 'overview', data = null, sortKey = 'visitors';
+const cacheByRange = {};
+
+/* ---------- sources ---------- */
+const I = {
+  discord:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.6 1.3a18 18 0 0 0-5.5 0L8.7 3a19.7 19.7 0 0 0-4.9 1.5C.5 9-.3 13.6.1 18.1a19.9 19.9 0 0 0 6 3l1.3-2a13 13 0 0 1-1.9-.9l.4-.3a14.2 14.2 0 0 0 12.1 0l.4.3-1.9.9 1.3 2a19.8 19.8 0 0 0 6-3c.5-5.2-.8-9.7-3.5-13.7zM8 15.3c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm8 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>',
+  youtube:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>',
+  tiktok:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 0h3.9c.1 1.5.6 3.1 1.8 4.2 1.1 1.1 2.7 1.6 4.2 1.8V10c-1.4-.1-2.9-.4-4.2-1-.6-.3-1.1-.6-1.6-.9v8.7c-.1 1.4-.5 2.8-1.4 3.9a7.4 7.4 0 0 1-5.9 3.2 7.2 7.2 0 0 1-7.7-6.8V15.6a7.4 7.4 0 0 1 8.7-6.7v4.4a3.3 3.3 0 0 0-4.4 2.1c-.2.5-.1 1.1-.1 1.6.2 1.6 1.8 3 3.5 2.9 1.1 0 2.2-.7 2.8-1.6.2-.3.4-.7.4-1.1.1-1.8.1-3.6.1-5.4V0z"/></svg>',
+  twitter:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2h3.4l-7.4 8.5L23 22h-6.8l-5.3-7-6.1 7H1.4l7.9-9L1 2h7l4.8 6.3L18.2 2zm-1.2 18h1.9L7.1 4H5.1L17 20z"/></svg>',
+  instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',
+  twitch:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.6 4.7h1.7v5.1h-1.7zm4.7 0H18v5.1h-1.7zM6 0 1.7 4.3v15.4h5.2V24l4.2-4.3h3.5L22.3 12V0zm14.6 11.1-3.4 3.5h-3.5l-3 3v-3H6.9V1.7h13.7z"/></svg>',
+  reddit:'<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="13" r="7"/><circle cx="18.5" cy="5.5" r="1.8"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  direct:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
+  'jettism.com':'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/></svg>',
+  other:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
+};
+const NAMES = { direct:['Direct','typed link, bookmark or in-app'], discord:['Discord',''], youtube:['YouTube',''], tiktok:['TikTok',''], twitter:['X / Twitter',''],
+  instagram:['Instagram',''], twitch:['Twitch',''], reddit:['Reddit',''], search:['Google & search',''], 'jettism.com':['Old jettism.com links',''] };
+const srcName = s => NAMES[s] ? NAMES[s] : [s, 'website'];
+const srcIcon = s => I[s] || I.other;
+
+/* ---------- auth (same one-year session as the Idea Board) ---------- */
+function showLock(msg){ $('app').hidden = true; $('signout').hidden = true; $('who').textContent = ''; $('lock').hidden = false; $('lockErr').textContent = msg || ''; }
+function initGoogle(){
+  if (!window.google || !google.accounts) return setTimeout(initGoogle, 150);
+  google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: r => login(r.credential), auto_select: false, ux_mode: 'popup' });
+  google.accounts.id.renderButton($('gbtn'), { theme:'filled_black', size:'large', shape:'pill', text:'signin_with', width:260 });
+}
+async function login(credential){
+  $('lockErr').textContent = 'Signing in…';
+  try {
+    const r = await (await fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'login', idToken: credential }) })).json();
+    if (!r.ok){ if (window.google) google.accounts.id.disableAutoSelect();
+      return showLock(r.error === 'not_allowed' ? (r.email || 'That account') + ' can’t see analytics. Pick jettism.contact@gmail.com.' : 'Sign-in didn’t work. Try again.'); }
+    session = r.session; ls('jt_session', session);
+    if (ls('jx_notrack') === null) ls('jx_notrack', '1');     // the owner's visits aren't counted by default
+    start();
+  } catch (e) { showLock('Sign-in didn’t work. Check your connection and try again.'); }
+}
+function signOut(){
+  if (session) fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'logout', session }) }).catch(() => {});
+  session = null; ls('jt_session', null); if (window.google) google.accounts.id.disableAutoSelect(); showLock('');
+}
+
+async function load(force){
+  if (!force && cacheByRange[range]) { data = cacheByRange[range]; return render(); }
+  $('body').classList.add('loading');
+  try {
+    const r = await (await fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'analytics.stats', session, range }) })).json();
+    if (!r.ok){
+      if (r.error === 'signin_required'){ ls('jt_session', null); return showLock('You’ve been signed out. Sign in again.'); }
+      if (r.error === 'not_allowed'){ return showLock((r.email || 'This account') + ' can’t see analytics. Sign out and pick jettism.contact@gmail.com.'); }
+      if (r.error !== 'bad_request') throw new Error(r.error);
+    }
+    if (!r.ok || r.visitors === undefined){   // the Google script hasn't been updated with analytics yet
+      $('banner').hidden = false;
+      $('banner').innerHTML = 'Analytics isn’t switched on in the Google script yet. Paste the updated <b>ideas-apps-script.gs</b> into the Idea Board script, run <b>analyticsSetup</b>, and deploy a new version.';
+      return;
+    }
+    $('banner').hidden = true;
+    $('who').textContent = r.email; $('signout').hidden = false;
+    cacheByRange[range] = data = r; render();
+  } catch (e) { toast('Couldn’t load analytics. Try refreshing.'); }
+  finally { $('body').classList.remove('loading'); }
+}
+
+function start(){
+  $('lock').hidden = true; $('app').hidden = false;
+  $('notrack').checked = ls('jx_notrack') === '1';
+  setRange(range, true);
+}
+
+/* ---------- render ---------- */
+const RANGE_TXT = { '24h':'last 24 hours', '7d':'last 7 days', '28d':'last 28 days', all:'lifetime' };
+function delta(cur, prev, el){
+  el.className = 'd'; el.textContent = '';
+  if (!data.prev || !data.prev.tracked || data.range === 'all') { el.textContent = RANGE_TXT[data.range]; return; }
+  if (!prev && !cur) { el.textContent = 'no change'; return; }
+  if (!prev) { el.textContent = '▲ new vs previous'; el.classList.add('up'); return; }
+  const p = Math.round((cur - prev) / prev * 100);
+  el.textContent = (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '% vs previous ' + ({ '24h':'24h', '7d':'7 days', '28d':'28 days' }[data.range]);
+  el.classList.add(p >= 0 ? 'up' : 'down');
+}
+function render(){
+  const d = data;
+  $('since').textContent = d.trackingSince ? 'Tracking since ' + new Date(d.trackingSince).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) + ' · updated ' + new Date(d.generatedAt).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' })
+    : 'No visits recorded yet. They’ll show up here as soon as someone opens the site.';
+  $('k-vis').textContent = fmt(d.visitors); delta(d.visitors, d.prev && d.prev.visitors, $('d-vis'));
+  $('k-app').textContent = fmt(d.applications); delta(d.applications, d.prev && d.prev.applications, $('d-app'));
+  $('k-pv').textContent = fmt(d.views); $('d-pv').textContent = d.visitors ? (d.views / d.visitors).toFixed(1) + ' per visitor' : '';
+  const rate = d.visitors ? d.applyHits / d.visitors * 100 : 0;
+  $('k-rate').textContent = d.visitors ? (rate < 10 ? rate.toFixed(1) : Math.round(rate)) + '%' : '–';
+  $('d-rate').textContent = d.visitors ? fmt(d.applyHits) + ' applied from the site' : '';
+  const unitTxt = { hour:'per hour', day:'per day', week:'per week' }[d.unit];
+  $('unit1').textContent = unitTxt; $('unit2').textContent = unitTxt + (d.range === 'all' ? ' · since tracking started' : '');
+  drawArea($('c-vis'), d.series, 'visitors', 'visitors');
+  drawBars($('c-app'), d.series, 'apps', 'applications');
+
+  const max = Math.max(1, ...d.sources.map(s => s.visitors));
+  $('topsrc').innerHTML = d.sources.length ? d.sources.slice(0, 6).map(s => {
+    const [n, sub] = srcName(s.src);
+    return `<div class="src"><span class="ic">${srcIcon(s.src)}</span><div class="nm">${esc(n)}${sub ? `<small>${esc(sub)}</small>` : ''}<div class="bar"><i style="width:${s.visitors / max * 100}%"></i></div></div>
+      <div class="ct num">${fmt(s.visitors)}<small>${pct(s.visitors, d.visitors)}</small></div></div>`; }).join('')
+    : '<div class="empty">No visits in this range yet.</div>';
+  $('pages').innerHTML = d.pages.length ? d.pages.map(p => `<div><code>${esc(SITE + (p.path === '/' ? '' : p.path))}</code><b class="num">${fmt(p.views)}</b></div>`).join('') : '<div class="empty">No page views yet.</div>';
+  $('dv-m').textContent = fmt(d.devices.mobile); $('dv-d').textContent = fmt(d.devices.desktop);
+  $('srcRange').textContent = RANGE_TXT[d.range];
+  renderTable();
+}
+const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '0%';
+function renderTable(){
+  const d = data; if (!d) return;
+  const rows = d.sources.map(s => Object.assign({ share: d.visitors ? s.visitors / d.visitors : 0 }, s)).sort((a, b) => b[sortKey] - a[sortKey] || b.visitors - a.visitors);
+  document.querySelectorAll('th button').forEach(b => b.toggleAttribute('data-on', b.dataset.sort === sortKey));
+  $('srcTable').innerHTML = rows.length ? rows.map(s => { const [n, sub] = srcName(s.src);
+    return `<tr><td><span class="srcname"><span class="src" style="padding:0;display:contents"><span class="ic" style="width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:rgba(150,180,255,.1)">${srcIcon(s.src)}</span></span>${esc(n)}${sub ? ` <small style="color:var(--muted);font-weight:500">${esc(sub)}</small>` : ''}</span></td>
+      <td class="num"><b>${fmt(s.visitors)}</b></td><td class="num">${fmt(s.views)}</td><td class="num">${fmt(s.applies)}</td><td class="num">${Math.round(s.share * 100)}%</td></tr>`; }).join('')
+    : '<tr><td colspan="5"><div class="empty">No visits in this range yet.</div></td></tr>';
+}
+
+/* ---------- charts (one series each, crosshair + tooltip) ---------- */
+function label(key, unit, long){
+  if (unit === 'hour'){ const h = +key.slice(11, 13); const t = (h % 12 || 12) + (h < 12 ? ' AM' : ' PM'); return long ? md(key) + ', ' + t : t; }
+  return (unit === 'week' ? 'Week of ' : '') + md(key);
+}
+function md(key){ const [y, m, d] = key.slice(0, 10).split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month:'short', day:'numeric' }); }
+function frame(el, series, field){
+  const W = Math.max(280, el.clientWidth), H = el.id === 'c-vis' ? 200 : 120, P = { l: 34, r: 8, t: 8, b: 24 };
+  const max = Math.max(1, ...series.map(s => s[field])); const nice = niceMax(max);
+  return { W, H, P, nice, iw: W - P.l - P.r, ih: H - P.t - P.b };
+}
+function niceMax(m){ const p = Math.pow(10, Math.floor(Math.log10(m))); for (const k of [1, 2, 2.5, 5, 10]) if (k * p >= m) return k * p; return 10 * p; }
+function axes(f, series, X){
+  let g = '';
+  for (let i = 0; i <= 2; i++){ const y = f.P.t + f.ih - f.ih * i / 2; const v = f.nice * i / 2;
+    g += `<line x1="${f.P.l}" x2="${f.W - f.P.r}" y1="${y}" y2="${y}" stroke="rgba(150,180,255,${i ? .08 : .18})"/><text class="axis" x="${f.P.l - 8}" y="${y + 4}" text-anchor="end">${v >= 1000 ? (v / 1000) + 'k' : +v.toFixed(1)}</text>`; }
+  const n = series.length, every = Math.max(1, Math.ceil(n / Math.floor(f.iw / 64)));
+  series.forEach((s, i) => { if (i % every && i !== n - 1) return; if (i !== n - 1 && n - 1 - i < every * .6) return;
+    const x = X(i);
+    g += `<text class="axis" x="${x}" y="${f.H - 6}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${esc(label(s.key, data.unit))}</text>`; });
+  return g;
+}
+function hover(el, f, series, field, noun, xOf){
+  const tip = document.createElement('div'); tip.className = 'tip'; el.appendChild(tip);
+  const svg = el.querySelector('svg'); const cross = svg.querySelector('.cross');
+  const move = e => { const r = svg.getBoundingClientRect(); const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    let i = Math.round((x - f.P.l) / (f.iw / Math.max(1, series.length - 1)));
+    if (xOf.band) i = Math.floor((x - f.P.l) / (f.iw / series.length));
+    i = Math.max(0, Math.min(series.length - 1, i)); const s = series[i], cx = xOf(i);
+    tip.innerHTML = `<b class="num">${fmt(s[field])}</b><span>${noun} · ${esc(label(s.key, data.unit, true))}</span>`;
+    tip.style.left = Math.max(70, Math.min(f.W - 70, cx)) + 'px'; tip.style.top = (xOf.y ? xOf.y(i) : f.P.t + 10) + 'px'; tip.style.opacity = 1;
+    if (cross) { cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.style.opacity = 1; }
+    svg.querySelectorAll('[data-i]').forEach(n => n.style.opacity = +n.dataset.i === i ? 1 : .55); };
+  const leave = () => { tip.style.opacity = 0; if (cross) cross.style.opacity = 0; svg.querySelectorAll('[data-i]').forEach(n => n.style.opacity = 1); };
+  svg.addEventListener('mousemove', move); svg.addEventListener('touchmove', move, { passive: true }); svg.addEventListener('mouseleave', leave); svg.addEventListener('touchend', leave);
+}
+function drawArea(el, series, field, noun){
+  const f = frame(el, series, field), n = series.length;
+  const X = i => f.P.l + (n === 1 ? f.iw / 2 : f.iw * i / (n - 1)), Y = v => f.P.t + f.ih - f.ih * v / f.nice;
+  const pts = series.map((s, i) => [X(i), Y(s[field])]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = line + ` L${X(n - 1)} ${f.P.t + f.ih} L${X(0)} ${f.P.t + f.ih} Z`;
+  const last = pts[n - 1];
+  el.innerHTML = `<svg width="${f.W}" height="${f.H}" viewBox="0 0 ${f.W} ${f.H}" role="img" aria-label="${noun} over time">
+    <defs><linearGradient id="ag-${el.id}" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#2F6BFF" stop-opacity=".42"/><stop offset="1" stop-color="#2F6BFF" stop-opacity="0"/></linearGradient>
+    <linearGradient id="lg-${el.id}" x1="0" x2="1"><stop offset="0" stop-color="#2F6BFF"/><stop offset="1" stop-color="#3FD8FF"/></linearGradient></defs>
+    ${axes(f, series, X)}<path d="${area}" fill="url(#ag-${el.id})"/><path d="${line}" fill="none" stroke="url(#lg-${el.id})" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line class="cross" y1="${f.P.t}" y2="${f.P.t + f.ih}" stroke="rgba(200,220,255,.35)" stroke-dasharray="3 3" style="opacity:0"/>
+    <circle cx="${last[0]}" cy="${last[1]}" r="4" fill="#3FD8FF" stroke="#050B1F" stroke-width="2"/></svg>`;
+  const xOf = i => X(i); xOf.y = i => pts[i][1] - 8; hover(el, f, series, field, noun, xOf);
+}
+function drawBars(el, series, field, noun){
+  const f = frame(el, series, field), n = series.length, bw = f.iw / n, w = Math.max(2, Math.min(28, bw - 2));
+  const X = i => f.P.l + bw * i + bw / 2, Y = v => f.P.t + f.ih - f.ih * v / f.nice;
+  const bars = series.map((s, i) => { const v = s[field]; if (!v) return ''; const y = Y(v), h = f.P.t + f.ih - y, r = Math.min(4, w / 2, h);
+    const x0 = X(i) - w / 2; return `<path data-i="${i}" d="M${x0} ${y + h} V${y + r} Q${x0} ${y} ${x0 + r} ${y} H${x0 + w - r} Q${x0 + w} ${y} ${x0 + w} ${y + r} V${y + h} Z" fill="#3FD8FF"/>`; }).join('');
+  el.innerHTML = `<svg width="${f.W}" height="${f.H}" viewBox="0 0 ${f.W} ${f.H}" role="img" aria-label="${noun} over time">${axes(f, series, X)}
+    ${bars}</svg>`;
+  const xOf = i => X(i); xOf.band = true; xOf.y = i => Y(series[i][field]) - 8; hover(el, f, series, field, noun, xOf);
+}
+
+/* ---------- controls ---------- */
+function setRange(r, force){
+  range = r; ls('jx_an_range', r);
+  document.querySelectorAll('#ranges button').forEach(b => b.setAttribute('aria-pressed', b.dataset.r === r));
+  load(force);
+}
+function setTab(t){
+  tab = t; document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  $('tab-overview').hidden = t !== 'overview'; $('tab-sources').hidden = t !== 'sources';
+  if (t === 'overview' && data) render();
+}
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.style.opacity = 1; clearTimeout(toast.h); toast.h = setTimeout(() => t.style.opacity = 0, 2200); }
+
+document.querySelectorAll('#ranges button').forEach(b => b.onclick = () => setRange(b.dataset.r));
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => setTab(b.dataset.tab));
+document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => setTab(b.dataset.goto));
+document.querySelectorAll('th button').forEach(b => b.onclick = () => { sortKey = b.dataset.sort; renderTable(); });
+$('refresh').onclick = () => { delete cacheByRange[range]; load(true); };
+$('signout').onclick = signOut;
+$('notrack').onchange = e => { ls('jx_notrack', e.target.checked ? '1' : '0'); toast(e.target.checked ? 'Your visits on this browser won’t be counted' : 'Your visits on this browser will be counted'); };
+$('share').innerHTML = [['discord','Discord'],['youtube','YouTube'],['tiktok','TikTok'],['twitter','X'],['instagram','Instagram']].map(([k, n]) =>
+  `<button data-copy="https://${SITE}/?ref=${k}">${srcIcon(k).replace('<svg', '<svg width="16" height="16"')} ${n} <code>${SITE}/?ref=${k}</code></button>`).join('')
+  + `<button data-copy="https://${SITE}/apply?position=Clipper&ref=discord">${I.discord.replace('<svg', '<svg width="16" height="16"')} Apply page, Discord <code>/apply?position=Clipper&amp;ref=discord</code></button>`;
+document.querySelectorAll('[data-copy]').forEach(b => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy); toast('Copied ' + b.dataset.copy.replace('https://', '')); } catch (e) { toast(b.dataset.copy); } });
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (data && tab === 'overview') render(); }, 150); });
+
+if (session) start(); else showLock('');
+initGoogle();
+</script>
+</body>
+</html>
