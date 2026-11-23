@@ -255,7 +255,20 @@ const srcName = s => NAMES[s] ? NAMES[s] : [s, 'website'];
 const srcIcon = s => I[s] || I.other;
 
 /* ---------- auth (same one-year session as the Idea Board) ---------- */
-function showLock(msg){ $('app').hidden = true; $('signout').hidden = true; $('who').textContent = ''; $('lock').hidden = false; $('lockErr').textContent = msg || ''; }
+/* The dashboard stays hidden until the server confirms this Google account is allowed to see analytics. */
+let unlocked = false;
+function showLock(msg, checking){
+  unlocked = false; data = null; for (const k in cacheByRange) delete cacheByRange[k];
+  $('app').hidden = true; $('signout').hidden = true; $('who').textContent = ''; $('lock').hidden = false;
+  $('gbtn').hidden = !!checking; $('lockErr').textContent = msg || '';
+  $('lockErr').style.color = checking ? 'var(--muted)' : '';
+}
+function unlock(email){
+  unlocked = true; $('lock').hidden = true; $('app').hidden = false;
+  $('who').textContent = email; $('signout').hidden = false;
+  if (ls('jx_notrack') === null) ls('jx_notrack', '1');     // the owner's own visits aren't counted by default
+  $('notrack').checked = ls('jx_notrack') === '1';
+}
 function initGoogle(){
   if (!window.google || !google.accounts) return setTimeout(initGoogle, 150);
   google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: r => login(r.credential), auto_select: false, ux_mode: 'popup' });
@@ -268,7 +281,6 @@ async function login(credential){
     if (!r.ok){ if (window.google) google.accounts.id.disableAutoSelect();
       return showLock(r.error === 'not_allowed' ? (r.email || 'That account') + ' can’t see analytics. Pick jettism.contact@gmail.com.' : 'Sign-in didn’t work. Try again.'); }
     session = r.session; ls('jt_session', session);
-    if (ls('jx_notrack') === null) ls('jx_notrack', '1');     // the owner's visits aren't counted by default
     start();
   } catch (e) { showLock('Sign-in didn’t work. Check your connection and try again.'); }
 }
@@ -283,25 +295,26 @@ async function load(force){
   try {
     const r = await (await fetch(API_URL, { method:'POST', body: JSON.stringify({ action:'analytics.stats', session, range }) })).json();
     if (!r.ok){
-      if (r.error === 'signin_required'){ ls('jt_session', null); return showLock('You’ve been signed out. Sign in again.'); }
-      if (r.error === 'not_allowed'){ return showLock((r.email || 'This account') + ' can’t see analytics. Sign out and pick jettism.contact@gmail.com.'); }
+      if (r.error === 'signin_required'){ session = null; ls('jt_session', null); return showLock('Sign in to see analytics.'); }
+      if (r.error === 'not_allowed'){ session = null; if (window.google) google.accounts.id.disableAutoSelect();   // keeps their Idea Board sign-in
+        return showLock((r.email || 'That account') + ' can’t see analytics. Sign in with jettism.contact@gmail.com.'); }
       if (r.error !== 'bad_request') throw new Error(r.error);
     }
     if (!r.ok || r.visitors === undefined){   // the Google script hasn't been updated with analytics yet
-      $('banner').hidden = false;
-      $('banner').innerHTML = 'Analytics isn’t switched on in the Google script yet. Paste the updated <b>ideas-apps-script.gs</b> into the Idea Board script, run <b>analyticsSetup</b>, and deploy a new version.';
-      return;
+      session = null;
+      return showLock('Analytics isn’t switched on in the Google script yet, so nobody can see it. Once it’s deployed, sign in here.');
     }
-    $('banner').hidden = true;
-    $('who').textContent = r.email; $('signout').hidden = false;
+    if (!unlocked) unlock(r.email);
     cacheByRange[range] = data = r; render();
-  } catch (e) { toast('Couldn’t load analytics. Try refreshing.'); }
+  } catch (e) {
+    if (unlocked) toast('Couldn’t load analytics. Try refreshing.');
+    else { showLock('Couldn’t reach the server. Check your connection and reload.', true); }
+  }
   finally { $('body').classList.remove('loading'); }
 }
 
 function start(){
-  $('lock').hidden = true; $('app').hidden = false;
-  $('notrack').checked = ls('jx_notrack') === '1';
+  showLock('Checking your sign-in…', true);
   setRange(range, true);
 }
 
