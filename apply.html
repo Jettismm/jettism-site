@@ -10,19 +10,19 @@
 <meta property="og:url" content="https://jettism.productions/apply">
 <meta property="og:title" content="Join The Jettism Team">
 <meta property="og:description" content="Clippers, editors, thumbnail designers, animators and Minecraft builders. Apply in about 2 minutes.">
-<meta property="og:image" content="https://jettism.productions/og.jpg?v=1">
+<meta property="og:image" content="https://jettism.productions/og.jpg?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Join the Jettism team">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Join The Jettism Team">
 <meta name="twitter:description" content="Clippers, editors, thumbnail designers, animators and Minecraft builders. Apply in about 2 minutes.">
-<meta name="twitter:image" content="https://jettism.productions/og.jpg?v=1">
+<meta name="twitter:image" content="https://jettism.productions/og.jpg?v=2">
 <meta name="theme-color" content="#2F6BFF">
 <link rel="icon" type="image/png" href="/jettismicontransparent.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <style>
 :root{
   --navy-950:#030817; --navy-900:#050B1F; --navy-800:#0A1433;
@@ -36,7 +36,7 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
-body{font-family:'Geist',system-ui,-apple-system,sans-serif;color:#fff;-webkit-font-smoothing:antialiased;min-height:100vh;
+body{font-family:'Archivo',system-ui,-apple-system,sans-serif;color:#fff;-webkit-font-smoothing:antialiased;min-height:100vh;
   background:radial-gradient(900px 600px at 85% -5%,rgba(47,107,255,.32),transparent 60%),
              radial-gradient(700px 500px at -10% 60%,rgba(63,216,255,.10),transparent 60%),var(--navy-900);
   background-attachment:fixed;line-height:1.5}
@@ -82,14 +82,14 @@ h1{font-weight:900;letter-spacing:-.045em;line-height:.9;font-size:clamp(48px,6.
 form{display:flex;flex-direction:column;gap:30px}
 .sec{display:grid;gap:18px}
 .sec-h{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.sec-h .n{font-family:'Geist Mono',monospace;font-size:12px;font-weight:600;color:var(--cyan);padding:4px 8px;border-radius:8px;background:rgba(63,216,255,.1)}
+.sec-h .n{font-family:'Archivo',sans-serif;font-size:12px;font-weight:600;color:var(--cyan);padding:4px 8px;border-radius:8px;background:rgba(63,216,255,.1)}
 .sec-h h3{font-size:17px;font-weight:800;letter-spacing:-.01em}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .field{display:flex;flex-direction:column;gap:8px;min-width:0}
 .field label,.field .q{font-weight:600;font-size:14px;color:#E6EEFF}
 .hint{font-size:12.5px;color:var(--muted);margin-top:-4px}
 input[type=text],input[type=number],input[type=url],textarea,select{
-  width:100%;padding:13px 15px;border-radius:14px;border:0;outline:none;color:#fff;font:500 15px/1.45 'Geist',system-ui,sans-serif;
+  width:100%;padding:13px 15px;border-radius:14px;border:0;outline:none;color:#fff;font:500 15px/1.45 'Archivo',system-ui,sans-serif;
   background:var(--field);box-shadow:0 0 0 1px var(--line-2) inset;transition:box-shadow .2s,background .2s}
 input::placeholder,textarea::placeholder{color:rgba(170,190,235,.45)}
 input:hover,textarea:hover,select:hover{box-shadow:0 0 0 1px rgba(150,180,255,.4) inset}
@@ -121,7 +121,7 @@ select option,select optgroup{background:#0A1433;color:#fff}
 .consent input:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 
 .notice{padding:13px 16px;border-radius:14px;font-size:14px;font-weight:600;text-align:center;color:var(--warn);background:rgba(255,214,107,.08);box-shadow:0 0 0 1px rgba(255,214,107,.3) inset}
-.submit-btn{position:relative;height:60px;border:0;border-radius:999px;cursor:pointer;color:#fff;font:800 16px 'Geist',sans-serif;letter-spacing:.04em;
+.submit-btn{position:relative;height:60px;border:0;border-radius:999px;cursor:pointer;color:#fff;font:800 16px 'Archivo',sans-serif;letter-spacing:.04em;
   background:linear-gradient(180deg,#4B82FF,var(--blue) 55%,var(--blue-2));overflow:hidden;
   box-shadow:0 0 0 1px rgba(255,255,255,.16) inset,0 14px 34px -10px rgba(47,107,255,.85),0 0 60px -12px rgba(63,216,255,.6);
   transition:transform .3s var(--ease),box-shadow .3s var(--ease),opacity .2s}
@@ -160,21 +160,39 @@ select option,select optgroup{background:#0A1433;color:#fff}
   h1{font-size:52px}
 }
 @media (prefers-reduced-motion:reduce){.reveal{animation:none;opacity:1;transform:none}.done .tick{animation:none}}
+
+/* ---------- calmer look: one typeface, flat colour, no glow ---------- */
+:root{--accent:#6FA6FF}
+body{background:var(--navy-900)}
+.accent{color:var(--accent)}
+h1,.logo,.proof b,.done h2{font-stretch:125%}
+h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.6vw,84px);margin-top:0}
+.logo{font-weight:800;letter-spacing:.08em}
+.logo img{filter:none}
+.proof b{font-weight:800;letter-spacing:-.02em}
+.proof div{background:transparent;box-shadow:0 0 0 1px var(--line) inset}
+.reqs li i{background:var(--blue);box-shadow:none}
+.card{background:#0A1433;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 0 0 1px var(--line) inset}
+.sec-h .n{font-weight:700}
+.check-opt:has(input:checked){background:var(--blue);box-shadow:none}
+.submit-btn{border-radius:12px;background:var(--blue);box-shadow:none;letter-spacing:0;font-weight:700;font-size:17px}
+.submit-btn:hover:not(:disabled){background:#4A7DFF;box-shadow:none;transform:none}
+.done .tick{background:var(--blue);box-shadow:none}
+.done h2{font-weight:800;letter-spacing:-.02em}
+.done a{border-radius:12px}
 </style>
 </head>
 <body>
-<div class="grid-bg"></div>
 <header class="nav">
   <div class="nav-in">
     <a href="/" class="logo"><img src="/crown.png" alt="" width="32" height="16">JETTISM</a>
-    <a href="/" class="back">← Back to site</a>
+    <a href="/" class="back">Back to site</a>
   </div>
 </header>
 
 <main class="page">
   <section class="intro">
-    <span class="eyebrow reveal">Join the team</span>
-    <h1 class="reveal" style="animation-delay:.06s">Join the<br>Jettism<br><span class="grad">team.</span></h1>
+    <h1 class="reveal" style="animation-delay:.06s">Join our<br><span class="accent">team</span></h1>
     <p class="lead reveal" style="animation-delay:.12s">We're hiring clippers, editors, thumbnail designers, animators and Minecraft builders.</p>
     <div class="reqs reveal" style="animation-delay:.18s">
       <h2>We're looking for people who are</h2>
@@ -185,8 +203,8 @@ select option,select optgroup{background:#0A1433;color:#fff}
       </ul>
     </div>
     <div class="proof reveal" style="animation-delay:.24s">
-      <div><b class="grad">16M</b><span>views on our top clip</span></div>
-      <div><b class="grad">116</b><span>clips past 1M views</span></div>
+      <div><b>16M</b><span>views on our top clip</span></div>
+      <div><b>116</b><span>clips past 1M views</span></div>
     </div>
   </section>
 

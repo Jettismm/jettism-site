@@ -10,19 +10,19 @@
 <meta property="og:url" content="https://jettism.productions/">
 <meta property="og:title" content="Get Paid To Clip Streams">
 <meta property="og:description" content="Turn stream clips into real money. Clip the streams, post the best moments, and get paid for your views.">
-<meta property="og:image" content="https://jettism.productions/og.jpg?v=1">
+<meta property="og:image" content="https://jettism.productions/og.jpg?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Get paid to clip streams — Jettism, 1B+ views">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Get Paid To Clip Streams">
 <meta name="twitter:description" content="Turn stream clips into real money. Clip the streams, post the best moments, and get paid for your views.">
-<meta name="twitter:image" content="https://jettism.productions/og.jpg?v=1">
+<meta name="twitter:image" content="https://jettism.productions/og.jpg?v=2">
 <meta name="theme-color" content="#2F6BFF">
 <link rel="icon" type="image/png" href="/jettismicontransparent.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
 <link rel="preload" as="image" href="/clips/yt/y8GXeNOjC-I.webp">
 <style>
 :root{
@@ -35,7 +35,7 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth;scroll-padding-top:84px;-webkit-text-size-adjust:100%}
-body{font-family:'Geist',system-ui,-apple-system,sans-serif;background:var(--navy-900);color:#fff;
+body{font-family:'Archivo',system-ui,-apple-system,sans-serif;background:var(--navy-900);color:#fff;
   -webkit-font-smoothing:antialiased;overflow-x:hidden;line-height:1.5}
 img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
@@ -248,7 +248,7 @@ section{position:relative}
 .step::before{content:'';position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;
   background:radial-gradient(circle,rgba(63,216,255,.28),transparent 70%);transition:transform .6s var(--ease)}
 .step:hover::before{transform:scale(1.4)}
-.step .num{font-family:'Geist Mono',monospace;font-weight:700;font-size:14px;color:var(--blue);letter-spacing:.1em}
+.step .num{font-family:'Archivo',sans-serif;font-weight:700;font-size:14px;color:var(--blue);letter-spacing:.1em}
 .step .ic{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;margin:22px 0 26px;
   background:linear-gradient(140deg,#5B92FF,var(--blue-2));box-shadow:0 16px 30px -10px rgba(47,107,255,.7),0 0 0 1px rgba(255,255,255,.3) inset}
 .step .ic svg{width:30px;height:30px}
@@ -339,6 +339,51 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
   .track{animation:none!important}
   .line-path{stroke-dashoffset:0!important}.bars i{transform:none!important}.area{opacity:1!important}
 }
+
+/* ---------- calmer look: one typeface, flat colour, no glow ---------- */
+:root{--accent:#6FA6FF}
+body,.btn,.nav-links a{font-family:'Archivo',system-ui,-apple-system,sans-serif}
+.h-xl,.h-lg,.h-xxl,.logo,.ticker-track,.bignum .n,.pstat .v,.ostat .v,.f-views .v{font-family:'Archivo',sans-serif;font-stretch:125%}
+.h-xl{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(44px,6.3vw,102px)}
+.h-lg,.h-xxl{font-weight:800;letter-spacing:-.02em;line-height:.95}
+.h-lg{font-size:clamp(40px,5.6vw,84px)} .h-xxl{font-size:clamp(40px,6.4vw,104px)}
+.bignum .n{font-weight:800;letter-spacing:-.02em;font-size:clamp(30px,4.4vw,66px)}
+.bignum .n small{font-size:.34em;letter-spacing:.02em;margin-left:10px;color:var(--muted-d);font-stretch:100%;vertical-align:.7em;font-weight:600}
+.pstat .v,.ostat .v{font-weight:800;letter-spacing:-.02em}
+.accent{color:var(--accent)}
+.logo{font-weight:800;letter-spacing:.08em}
+.logo img{filter:none}
+.btn{font-weight:700;letter-spacing:0;font-size:16px;border-radius:12px}
+.btn-primary{background:var(--blue);box-shadow:none}
+.btn-primary:hover{background:#4A7DFF;box-shadow:none;transform:none}
+.btn-primary::after{display:none}
+.btn-ghost{background:transparent;box-shadow:0 0 0 1px rgba(255,255,255,.22) inset;backdrop-filter:none}
+.btn-ghost:hover{background:rgba(255,255,255,.06);transform:none}
+.btn-huge{animation:none;height:64px;padding:0 36px;margin-top:36px;font-size:17px}
+.hero{background:var(--navy-900)}
+.ph{box-shadow:0 0 0 1px rgba(255,255,255,.12),0 30px 60px -24px rgba(0,0,0,.75)}
+.float{animation:none;background:#0C1838;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 0 0 1px rgba(255,255,255,.1),0 20px 40px -16px rgba(0,0,0,.6)}
+.f-views .k{letter-spacing:.02em;font-size:12px}
+.f-views .up{color:var(--muted-d);font-weight:500}
+.ticker{background:var(--blue);box-shadow:none;padding:18px 0}
+.ticker-track{font-weight:800;letter-spacing:-.01em;gap:40px}
+.ticker-track img{height:.5em;width:auto}
+.proof{background:var(--navy-900)}
+.pstat{background:transparent;box-shadow:0 0 0 1px var(--line-d) inset}
+.gcard{box-shadow:0 0 0 1px rgba(255,255,255,.1)}
+.gcard:hover{transform:translateY(-4px);box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+.gallery .gcard.in:nth-child(4n+2):hover,.gallery .gcard.in:nth-child(4n+4):hover{transform:translateY(40px)}
+.gcard:hover img{transform:none}
+.gcard .rank{background:rgba(3,8,23,.8);backdrop-filter:none}
+.gcard .meta span{color:#fff;opacity:.8;font-weight:600}
+.opp{background:var(--navy-950)}
+.opp-stats{background:var(--line-d)}
+.mt{box-shadow:0 0 0 1px rgba(255,255,255,.1)}
+.final{background:var(--blue-2)}
+.final .sub{color:#DCE6FF}
+.final .fine{color:#C3D3FF}
+.final .btn-primary{background:#fff;color:var(--blue-2)}
+.final .btn-primary:hover{background:#E8EFFF}
 </style>
 </head>
 <body>
@@ -349,37 +394,36 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
     <nav class="nav-links" aria-label="Sections">
       <a href="#clips">Viral Clips</a>
     </nav>
-    <a class="btn btn-primary" data-join href="/apply?position=Clipper">Join Now <span class="arr">→</span></a>
+    <a class="btn btn-primary" data-join href="/apply?position=Clipper">Apply</a>
   </div>
 </header>
 
 <main id="top">
 <!-- ============ HERO ============ -->
 <section class="hero">
-  <div class="grid-bg"></div><div class="orb o1"></div><div class="orb o2"></div>
   <div class="wrap hero-grid">
     <div>
       
-      <h1 class="h-xl"><span class="ld" style="--d:.12s">Get paid</span><span class="ld" style="--d:.2s">to clip</span><span class="ld grad" style="--d:.28s">streams.</span></h1>
+      <h1 class="h-xl"><span class="ld" style="--d:.12s">Get paid</span><span class="ld" style="--d:.2s">to clip</span><span class="ld accent" style="--d:.28s">streams.</span></h1>
       <p class="lead ld" style="--d:.4s">Turn stream clips into real money.</p>
       <div class="ctas ld" style="--d:.5s">
-        <a class="btn btn-primary" data-join href="/apply?position=Clipper">START EARNING <span class="arr">→</span></a>
-        <a class="btn btn-ghost" href="#clips">SEE THE CLIPS <span class="arr" style="transform:none">↓</span></a>
+        <a class="btn btn-primary" data-join href="/apply?position=Clipper">Apply to clip</a>
+        <a class="btn btn-ghost" href="#clips">See the clips</a>
       </div>
       <div class="bignum ld" style="--d:.62s">
-        <div class="n"><span class="grad mono" data-count="views-hero">1,000,000,000</span><span class="grad">+</span><small>VIEWS</small></div>
-        <p data-text="heroViewsNote">Over 1 billion views generated across our content.</p>
+        <div class="n"><span class="mono" data-count="views-hero">1,000,000,000</span>+<small>views</small></div>
+        <p data-text="heroViewsNote">Across the Jettism and JettismToo channels.</p>
       </div>
     </div>
 
     <div class="stage ld" style="--d:.3s" aria-hidden="true">
-      <div class="ph p2" data-par="-0.06"><img src="/clips/yt/KuRzqeLLo8I.webp" alt="" width="432" height="768"><span class="vc">▶ 13M views</span></div>
-      <div class="ph p3" data-par="-0.1"><img src="/clips/yt/a8vPLp1cC3E.webp" alt="" width="432" height="768"><span class="vc">▶ 9.7M views</span></div>
-      <div class="ph p1" data-par="-0.03"><img src="/clips/yt/y8GXeNOjC-I.webp" alt="" width="432" height="768" fetchpriority="high"><span class="vc">▶ 16M views</span></div>
+      <div class="ph p2" data-par="-0.06"><img src="/clips/yt/KuRzqeLLo8I.webp" alt="" width="432" height="768"><span class="vc">13M views</span></div>
+      <div class="ph p3" data-par="-0.1"><img src="/clips/yt/a8vPLp1cC3E.webp" alt="" width="432" height="768"><span class="vc">9.7M views</span></div>
+      <div class="ph p1" data-par="-0.03"><img src="/clips/yt/y8GXeNOjC-I.webp" alt="" width="432" height="768" fetchpriority="high"><span class="vc">16M views</span></div>
       <div class="float f-views">
-        <div class="k">TOP CLIP</div>
+        <div class="k">Top clip</div>
         <div class="v mono">16,000,000</div>
-        <div class="up">▲ views on one stream clip</div>
+        <div class="up">views on one stream clip</div>
       </div>
       
       
@@ -390,20 +434,19 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
 
 <!-- ============ TICKER ============ -->
 <div class="ticker" aria-label="Get paid for your views">
-  <div class="ticker-track" aria-hidden="true"><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i><span>Get paid for your views</span><i>✦</i></div>
+  <div class="ticker-track" aria-hidden="true"><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""><span>Get paid for your views</span><img src="/crown.png" alt=""></div>
 </div>
 
 <!-- ============ PROOF ============ -->
 <section class="sec dark proof" id="clips">
   <div class="wrap">
     <div class="center">
-      <span class="eyebrow rv">Viral proof</span>
-      <h2 class="h-lg rv" style="--d:.08s">The numbers<br><span class="grad">speak for themselves.</span></h2>
-      <p class="sub rv" style="--d:.16s">Billions of impressions. Millions of viewers. Endless opportunities.</p>
+      <h2 class="h-lg rv" style="--d:.08s">The Numbers</h2>
+      <p class="sub rv" style="--d:.16s">The most-watched clips on JettismToo. Every one of them started as a moment on stream.</p>
     </div>
     <div class="proof-stats">
-      <div class="pstat rv" style="--d:.08s"><div class="v grad mono" data-count="short" data-to="16000000">0</div><div class="k">views on the top clip</div></div>
-      <div class="pstat rv" style="--d:.16s"><div class="v grad mono" data-count="int" data-to="116">0</div><div class="k">clips past 1M views</div></div>
+      <div class="pstat rv" style="--d:.08s"><div class="v mono" data-count="short" data-to="16000000">0</div><div class="k">views on the top clip</div></div>
+      <div class="pstat rv" style="--d:.16s"><div class="v mono" data-count="int" data-to="116">0</div><div class="k">clips past 1M views</div></div>
     </div>
     <div class="gallery" id="gallery"></div>
     <p class="proof-note rv">Live from <a href="https://www.youtube.com/@JettismToo/shorts" target="_blank" rel="noopener" style="text-decoration:underline">@JettismToo</a>, stream clips sorted by most popular (view counts as of Nov 23, 2026). Tap any clip to watch it.</p>
@@ -413,14 +456,12 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
 
 <!-- ============ OPPORTUNITY ============ -->
 <section class="sec opp dark">
-  <div class="beam"></div>
   <div class="wrap center">
-    <span class="eyebrow rv">The opportunity</span>
-    <h2 class="h-xxl rv" style="--d:.08s">The next<br>viral clip<br><span class="grad">could be yours.</span></h2>
+    <h2 class="h-xxl rv" style="--d:.08s">Two streams a week.<br><span class="accent">Lots to clip.</span></h2>
     <div class="opp-stats rv" style="--d:.16s">
-      <div class="ostat"><div class="v grad mono" data-count="billion">1B+</div><div class="k">views across our content</div></div>
-      <div class="ostat"><div class="v grad mono" data-count="short" data-to="16000000">0</div><div class="k">views on one clip</div></div>
-      <div class="ostat"><div class="v grad mono">2×</div><div class="k">streams every week</div></div>
+      <div class="ostat"><div class="v mono" data-count="billion">1B+</div><div class="k">views across our content</div></div>
+      <div class="ostat"><div class="v mono" data-count="short" data-to="16000000">0</div><div class="k">views on one clip</div></div>
+      <div class="ostat"><div class="v mono">2×</div><div class="k">streams every week</div></div>
     </div>
   </div>
   <div class="marquee" aria-hidden="true">
@@ -432,10 +473,10 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
 <!-- ============ FINAL ============ -->
 <section class="final">
   <div class="wrap">
-    <h2 class="h-xxl rv">Stop scrolling.<br><span class="grad">Start earning.</span></h2>
-    <p class="sub rv" style="--d:.1s">Your next clip could reach millions. Start clipping today.</p>
-    <a class="btn btn-primary btn-huge rv" style="--d:.18s" data-join href="/apply?position=Clipper">JOIN THE CLIPPING PROGRAM <span class="arr">→</span></a>
-    <p class="fine rv" style="--d:.24s">Takes about 2 minutes to apply.</p>
+    <h2 class="h-xxl rv">Join our team</h2>
+    <p class="sub rv" style="--d:.1s">Clip the streams, post the best parts, and get paid for the views.</p>
+    <a class="btn btn-primary btn-huge rv" style="--d:.18s" data-join href="/apply?position=Clipper">Apply now</a>
+    <p class="fine rv" style="--d:.24s">The form takes about 2 minutes.</p>
   </div>
 </section>
 </main>
@@ -462,7 +503,7 @@ footer{background:var(--navy-950);padding:44px 0;border-top:1px solid var(--line
 const CONFIG = {
   joinUrl: '/apply?position=Clipper',     // where every "Join / Start earning" button goes
   heroViews: 1000000000,                  // the big hero number
-  heroViewsNote: 'Over 1 billion views generated across our content.'
+  heroViewsNote: 'Across the Jettism and JettismToo channels.'
 };
 const CLIPS = [ // @JettismToo stream clips (facecam Shorts), Popular order — views as shown on YouTube, Nov 23 2026
   {id:"y8GXeNOjC-I",title:"Jettism Finds An OP Glitch",views:"16M"},
@@ -518,11 +559,11 @@ const CLIPS = [ // @JettismToo stream clips (facecam Shorts), Popular order — 
   const url = c => 'https://www.youtube.com/shorts/' + c.id, img = c => '/clips/yt/' + c.id + '.webp';
   document.getElementById('gallery').innerHTML = CLIPS.slice(0,12).map((c,i) =>
     `<a class="gcard rv" style="--d:${(i%4)*.07}s" href="${url(c)}" target="_blank" rel="noopener"><img src="${img(c)}" alt="${esc(c.title)} — ${c.views} views on YouTube" loading="lazy" decoding="async">
-      <span class="rank ${i<3?'top':''}">#${i+1}</span><span class="pl">▶</span>
+      <span class="rank">#${i+1}</span>
       <span class="meta"><b>${esc(c.title)}</b><span>${c.views} views</span></span></a>`).join('');
 
   // marquee
-  const tile = c => `<div class="mt"><img src="${img(c)}" alt="" loading="lazy" decoding="async"><span>▶ ${c.views}</span></div>`;
+  const tile = c => `<div class="mt"><img src="${img(c)}" alt="" loading="lazy" decoding="async"><span>${c.views}</span></div>`;
   const a = CLIPS.slice(12,24), b = CLIPS.slice(24,36);
   document.getElementById('m1').innerHTML = [...a,...a].map(tile).join('');
   document.getElementById('m2').innerHTML = [...b,...b].map(tile).join('');
