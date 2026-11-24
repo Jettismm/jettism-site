@@ -458,6 +458,7 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
         bring: $('bring').value,
         standout: $('standout').value,
         payout: $('payout').value,
+        submitted_at: new Date().toISOString(),
         company: $('jx-hp-field').value,      // honeypot (renamed so browser autofill never fills it), should stay empty
         device: deviceId()
       };

@@ -544,7 +544,10 @@ function analyticsStats(range, who) {
   const asheet = SpreadsheetApp.openById(APPLY_SHEET_ID).getSheets()[0];
   const avals = asheet.getDataRange().getValues();
   const col = avals.length ? avals[0].map(String).indexOf('submitted_at') : -1;
-  const apps = col < 0 ? [] : avals.slice(1).map(r => new Date(r[col]).getTime()).filter(t => !isNaN(t) && t <= now + 864e5);
+  const dcol = avals.length ? avals[0].map(String).indexOf('discord') : -1;
+  const arows = avals.slice(1).filter(r => dcol < 0 || String(r[dcol]).trim() !== '');
+  const apps = col < 0 ? [] : arows.map(r => r[col] === '' ? NaN : new Date(r[col]).getTime()).filter(t => !isNaN(t) && t <= now + 864e5);
+  const undated = arows.length - apps.length;   // rows saved without a submitted_at time (Oct 21 - Nov 24, 2026)
 
   const start = span ? now - span : Math.min(firstVisit, now);
   const inR = t => t >= start && t <= now + 6e4;
@@ -573,7 +576,7 @@ function analyticsStats(range, who) {
     (devices[r.dev] || devices.desktop).add(r.vid);
     const b = series[keyOf(r.t)]; if (b) b.v.add(r.vid);
   });
-  let applications = 0;
+  let applications = span ? 0 : undated;
   apps.forEach(t => { if (span && !inR(t)) return; applications++; const b = series[keyOf(t)]; if (b) b.apps++; });   // lifetime counts every application ever
 
   // previous period of the same length, for the up/down arrows
@@ -598,6 +601,56 @@ function analyticsStats(range, who) {
   cache.put('an_' + range, JSON.stringify(result), 60);   // reuse for a minute
   result.email = who.email;
   return result;
+}
+
+/**
+ * Run once from the editor to clean the applications sheet:
+ *  - removes spam rows (Discord name in SPAM_NAMES, e.g. the ~4,000 "h" submissions)
+ *  - removes repeat applications from the same Discord name for the same position (keeps the first)
+ * Every removed row is copied to a "Removed rows" tab first, so nothing is lost.
+ */
+const SPAM_NAMES = ['h'];
+function cleanApplications() {
+  const ss = SpreadsheetApp.openById(APPLY_SHEET_ID);
+  const sh = ss.getSheets()[0];
+  const vals = sh.getDataRange().getValues();
+  const head = vals[0].map(String);
+  const iD = head.indexOf('discord'), iP = head.indexOf('position');
+  if (iD < 0 || iP < 0) throw new Error('Could not find the discord / position columns');
+
+  const seen = {}, remove = [];
+  for (let i = 1; i < vals.length; i++) {
+    const d = String(vals[i][iD]).trim().toLowerCase();
+    const pos = String(vals[i][iP]).trim().toLowerCase();
+    if (!d) continue;
+    if (SPAM_NAMES.indexOf(d) !== -1) { remove.push([i, 'spam']); continue; }
+    const key = d + '|' + pos;
+    if (seen[key]) { remove.push([i, 'duplicate']); continue; }
+    seen[key] = true;
+  }
+  if (!remove.length) { Logger.log('Nothing to remove. ' + (vals.length - 1) + ' applications.'); return; }
+
+  let bak = ss.getSheetByName('Removed rows');
+  if (!bak) bak = ss.insertSheet('Removed rows', ss.getSheets().length);   // added at the end; the form keeps using the first tab
+  if (bak.getLastRow() === 0) bak.appendRow(head.concat(['removed_at', 'reason', 'original_row']));
+  const stamp = new Date().toISOString();
+  const backup = remove.map(([i, why]) => vals[i].concat([stamp, why, i + 1]));
+  bak.getRange(bak.getLastRow() + 1, 1, backup.length, backup[0].length).setValues(backup);
+
+  // delete from the bottom up, in runs of neighbouring rows
+  const rows = remove.map(([i]) => i + 1).sort((a, b) => b - a);
+  let k = 0;
+  while (k < rows.length) {
+    const end = rows[k];
+    let start = end;
+    while (k + 1 < rows.length && rows[k + 1] === start - 1) { k++; start--; }
+    sh.deleteRows(start, end - start + 1);
+    k++;
+  }
+  CacheService.getScriptCache().removeAll(['an_24h', 'an_7d', 'an_28d', 'an_all']);
+  const spam = remove.filter(r => r[1] === 'spam').length;
+  Logger.log('Removed ' + spam + ' spam rows and ' + (remove.length - spam) + ' duplicates. ' +
+    (vals.length - 1 - remove.length) + ' applications left. Backup: "Removed rows" tab.');
 }
 
 /** Run once from the editor after adding analytics: grants Sheets access and creates the Visits sheet. */

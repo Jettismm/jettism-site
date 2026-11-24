@@ -375,10 +375,10 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.45)}
              (!mcFilter || r.minecraft_experience === mcFilter);
     });
 
+    // New applications are always added to the bottom of the sheet, so the row number is the
+    // arrival order. (Rows sent between Oct 21 and Nov 24 have no submitted_at time.)
     rows.sort(function(a, b){
-      const ta = new Date(a.submitted_at).getTime() || 0;
-      const tb = new Date(b.submitted_at).getTime() || 0;
-      return order === 'new' ? tb - ta : ta - tb;
+      return order === 'new' ? b._row - a._row : a._row - b._row;
     });
 
     const list = $('card-list');
