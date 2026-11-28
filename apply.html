@@ -291,6 +291,10 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
           <span class="hint" id="bring-hint" hidden></span>
           <textarea id="bring" name="bring" maxlength="3000" required></textarea>
         </div>
+        <div class="field" id="bring2-field" hidden>
+          <label for="bring2">What can you bring to the Jettism team?</label>
+          <textarea id="bring2" name="bring2" maxlength="3000"></textarea>
+        </div>
         <div class="field" id="process-field" hidden>
           <label for="process">Walk us through how you come up with ideas</label>
           <span class="hint">Where do ideas come from for you, and how do you decide which ones are worth making?</span>
@@ -361,7 +365,7 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
         expPlaceholder: 'Channels or creators you have worked with, what you did there, and how it went',
         showMc: true,
         mcLabel: 'Do you watch or make Minecraft content (SMPs, Donut SMP, traps)?',
-        bringLabel: 'Think of 5 video ideas for Jettism right now',
+        bringLabel: 'Think of 5 video ideas for JettismToo right now',
         bringHint: 'Quick is fine. One or two lines each.',
         bringPlaceholder: '1.\n2.\n3.\n4.\n5.',
         showProcess: true
@@ -400,6 +404,8 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
       $('bring-hint').hidden = !cfg.bringHint;
       $('bring').placeholder = cfg.bringPlaceholder || '';
       $('process-field').hidden = !cfg.showProcess;
+      $('bring2-field').hidden = !cfg.showProcess;
+      $('bring2').required = !!cfg.showProcess;
       $('bring').style.minHeight = cfg.showProcess ? '170px' : '';
       $('process').required = !!cfg.showProcess;
       $('req-bg-text').textContent = cfg.requirement;
@@ -492,7 +498,10 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
           : $('experience').value,
         minecraft_experience: needsMc ? mcChecked.value : 'N/A',
         bring: $('bring').value,
-        standout: $('standout').value,
+        // Creative Director's "what can you bring" answer is saved with "what makes you stand out"
+        standout: KINDS[ROLE_KIND[position] || 'edit'].showProcess
+          ? $('standout').value + '\n\n--- What they can bring ---\n' + $('bring2').value
+          : $('standout').value,
         payout: $('payout').value,
         submitted_at: new Date().toISOString(),
         company: $('jx-hp-field').value,      // honeypot (renamed so browser autofill never fills it), should stay empty

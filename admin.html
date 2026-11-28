@@ -375,8 +375,9 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.45)}
     const dd = function(label, v){ return '<dt>' + label + '</dt><dd>' + escapeHtml(v) + '</dd>'; };
     if(r.position === 'Creative Director'){
       const parts = String(r.experience || '').split(IDEA_SPLIT);
-      return '<dl class="detail">' + dd('5 video ideas', r.bring) + dd('How they come up with ideas', parts[1] || '') +
-        dd('Past experience', parts[0]) + dd('What makes them stand out', r.standout) + '</dl>';
+      const so = String(r.standout || '').split('\n\n--- What they can bring ---\n');
+      return '<dl class="detail">' + dd('5 video ideas for JettismToo', r.bring) + dd('How they come up with ideas', parts[1] || '') +
+        dd('Past experience', parts[0]) + dd('What they can bring', so[1] || '') + dd('What makes them stand out', so[0]) + '</dl>';
     }
     return '<dl class="detail">' + dd('Experience', r.experience) + dd('What they bring', r.bring) +
       dd('What makes them stand out', r.standout) + '</dl>';
