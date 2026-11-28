@@ -100,6 +100,7 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.45)}
 .detail dt:first-child{margin-top:0}
 .detail dd{overflow-wrap:anywhere}
 #empty{text-align:center;color:rgba(255,255,255,.8);padding:40px 0;font-size:14px}
+.detail dd{white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -116,6 +117,9 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.45)}
     <div class="toolbar" id="toolbar">
       <select id="filter-position">
         <option value="">Sort by: Position (all)</option>
+        <optgroup label="Leadership">
+          <option>Creative Director</option>
+        </optgroup>
         <optgroup label="Editing &amp; Content">
           <option>Longform Editor</option>
           <option>Shortform Editor</option>
@@ -365,6 +369,19 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.45)}
     return /^https?:\/\//i.test(String(u || '').trim()) ? String(u).trim() : '#';
   }
 
+  // Creative Director answers reuse the same sheet columns, so label them for what was asked
+  const IDEA_SPLIT = '\n\n--- How they come up with ideas ---\n';
+  function detailHtml(r){
+    const dd = function(label, v){ return '<dt>' + label + '</dt><dd>' + escapeHtml(v) + '</dd>'; };
+    if(r.position === 'Creative Director'){
+      const parts = String(r.experience || '').split(IDEA_SPLIT);
+      return '<dl class="detail">' + dd('5 video ideas', r.bring) + dd('How they come up with ideas', parts[1] || '') +
+        dd('Past experience', parts[0]) + dd('What makes them stand out', r.standout) + '</dl>';
+    }
+    return '<dl class="detail">' + dd('Experience', r.experience) + dd('What they bring', r.bring) +
+      dd('What makes them stand out', r.standout) + '</dl>';
+  }
+
   function render(animate){
     const posFilter = $('filter-position').value;
     const mcFilter = $('filter-mc').value;
@@ -416,11 +433,7 @@ h1,h2,label,p,li,span,a,button,dt,dd{text-shadow:0 2px 6px rgba(0,0,0,.45)}
             '<span>Hours/day: ' + escapeHtml(r.hours) + '</span>' +
             '<span>Payout: ' + escapeHtml(r.payout) + '</span>' +
           '</div>' +
-          '<dl class="detail">' +
-            '<dt>Experience</dt><dd>' + escapeHtml(r.experience) + '</dd>' +
-            '<dt>What they bring</dt><dd>' + escapeHtml(r.bring) + '</dd>' +
-            '<dt>What makes them stand out</dt><dd>' + escapeHtml(r.standout) + '</dd>' +
-          '</dl>' +
+          detailHtml(r) +
         '</div>';
     }).join('');
 

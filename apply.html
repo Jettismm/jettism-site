@@ -193,7 +193,7 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
 <main class="page">
   <section class="intro">
     <h1 class="reveal" style="animation-delay:.06s">Join our<br><span class="accent">team</span></h1>
-    <p class="lead reveal" style="animation-delay:.12s">We're hiring clippers, editors, thumbnail designers, animators and Minecraft builders.</p>
+    <p class="lead reveal" style="animation-delay:.12s">We're hiring a creative director, plus clippers, editors, thumbnail designers, animators and Minecraft builders.</p>
     <div class="reqs reveal" style="animation-delay:.18s">
       <h2>We're looking for people who are</h2>
       <ul>
@@ -221,6 +221,9 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
           <label for="position">What position are you applying for?</label>
           <select id="position" name="position" required>
             <option value="" disabled selected>Select a position</option>
+            <optgroup label="Leadership">
+              <option>Creative Director</option>
+            </optgroup>
             <optgroup label="Editing &amp; Content">
               <option>Longform Editor</option>
               <option>Shortform Editor</option>
@@ -273,7 +276,7 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
           <textarea id="experience" name="experience" maxlength="3000" required></textarea>
         </div>
         <div class="field" id="mc-field">
-          <span class="q">Do you have experience editing for Minecraft (flashback, recording b-roll)?</span>
+          <span class="q" id="mc-label">Do you have experience editing for Minecraft (flashback, recording b-roll)?</span>
           <div class="pills check-row">
             <label class="check-opt"><input type="checkbox" name="mc_exp" value="Yes" class="mc-check"/> Yes</label>
             <label class="check-opt"><input type="checkbox" name="mc_exp" value="No" class="mc-check"/> No</label>
@@ -284,8 +287,14 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
       <div class="sec">
         <div class="sec-h"><span class="n">04</span><h3>Why you</h3></div>
         <div class="field">
-          <label for="bring">What can you bring to the Jettism team?</label>
+          <label for="bring" id="bring-label">What can you bring to the Jettism team?</label>
+          <span class="hint" id="bring-hint" hidden></span>
           <textarea id="bring" name="bring" maxlength="3000" required></textarea>
+        </div>
+        <div class="field" id="process-field" hidden>
+          <label for="process">Walk us through how you come up with ideas</label>
+          <span class="hint">Where do ideas come from for you, and how do you decide which ones are worth making?</span>
+          <textarea id="process" name="process" maxlength="3000"></textarea>
         </div>
         <div class="field">
           <label for="standout">What makes you stand out?</label>
@@ -337,10 +346,26 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
 
     // ── Role-specific wording ──
     const ROLE_KIND = {
+      'Creative Director': 'director',
       'Minecraft Builder': 'builder',
       'Minecraft Mod Developer': 'dev'
     };
+    const MC_EDIT = 'Do you have experience editing for Minecraft (flashback, recording b-roll)?';
+    const BRING = 'What can you bring to the Jettism team?';
     const KINDS = {
+      director: {
+        requirement: 'Great at coming up with ideas and planning content',
+        portfolioLabel: 'Link to your past work',
+        portfolioHint: "A channel you've helped grow, an idea doc, videos you planned. Any link works (YouTube, Google Drive, Notion, etc.)",
+        expLabel: "What's your past experience?",
+        expPlaceholder: 'Channels or creators you have worked with, what you did there, and how it went',
+        showMc: true,
+        mcLabel: 'Do you watch or make Minecraft content (SMPs, Donut SMP, traps)?',
+        bringLabel: 'Think of 5 video ideas for Jettism right now',
+        bringHint: 'Quick is fine. One or two lines each.',
+        bringPlaceholder: '1.\n2.\n3.\n4.\n5.',
+        showProcess: true
+      },
       edit: {
         requirement: 'Has a background in editing',
         portfolioLabel: 'Link to Editing Portfolio',
@@ -369,6 +394,14 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
 
     function applyRole(position){
       const cfg = KINDS[ROLE_KIND[position] || 'edit'];
+      $('mc-label').textContent = cfg.mcLabel || MC_EDIT;
+      $('bring-label').textContent = cfg.bringLabel || BRING;
+      $('bring-hint').textContent = cfg.bringHint || '';
+      $('bring-hint').hidden = !cfg.bringHint;
+      $('bring').placeholder = cfg.bringPlaceholder || '';
+      $('process-field').hidden = !cfg.showProcess;
+      $('bring').style.minHeight = cfg.showProcess ? '170px' : '';
+      $('process').required = !!cfg.showProcess;
       $('req-bg-text').textContent = cfg.requirement;
       $('portfolio-label').textContent = cfg.portfolioLabel;
       $('portfolio-hint').textContent = cfg.portfolioHint;
@@ -453,7 +486,10 @@ h1{font-weight:800;letter-spacing:-.02em;line-height:.95;font-size:clamp(46px,5.
         age: $('age').value,
         hours: $('hours').value,
         portfolio: $('portfolio').value,
-        experience: $('experience').value,
+        // Creative Director's idea-process answer is saved with their experience (the sheet has no column for it)
+        experience: KINDS[ROLE_KIND[position] || 'edit'].showProcess
+          ? $('experience').value + '\n\n--- How they come up with ideas ---\n' + $('process').value
+          : $('experience').value,
         minecraft_experience: needsMc ? mcChecked.value : 'N/A',
         bring: $('bring').value,
         standout: $('standout').value,
